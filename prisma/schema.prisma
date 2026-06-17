@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  OPERATOR
+  VIEWER
+}
+
+enum MovementType {
+  IN
+  OUT
+  TRANSFER
+  ADJUSTMENT
+}
+
+model User {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String    @db.VarChar(120)
+  email         String    @unique @db.VarChar(255)
+  password_hash String
+  role          Role      @default(VIEWER)
+  is_active     Boolean   @default(true)
+  created_at    DateTime  @default(now()) @db.Timestamptz
+  updated_at    DateTime  @updatedAt @db.Timestamptz
+
+  created_parts    Part[]           @relation("UserCreatedParts")
+  stock_movements  StockMovement[]  @relation("UserPerformedMovements")
+
+  @@map("users")
+}
+
+model HsnCode {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code        String   @unique @db.VarChar(20)
+  description String
+  gst_rate    Decimal? @db.Decimal(5, 2)
+  created_at  DateTime @default(now()) @db.Timestamptz
+
+  parts       Part[]
+
+  @@map("hsn_codes")
+}
+
+model StockCategory {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String   @unique @db.VarChar(80) // electrical | electronic | iot | general
+  label      String   @db.VarChar(120)
+  icon       String?  @db.VarChar(80)
+  sort_order Int
+
+  subcategories StockSubcategory[]
+  parts         Part[]
+
+  @@map("stock_categories")
+}
+
+model StockSubcategory {
+  id          String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  category_id String @db.Uuid
+  name        String @db.VarChar(80) // module | component | device
+  label       String @db.VarChar(120)
+
+  category    StockCategory @relation(fields: [category_id], references: [id])
+  parts       Part[]
+
+  @@map("stock_subcategories")
+}
+
+model Location {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  zone        String  @db.VarChar(80)
+  rack        String? @db.VarChar(40)
+  shelf       String? @db.VarChar(40)
+  bin         String? @db.VarChar(40)
+  label       String
+  description String?
+  is_active   Boolean @default(true)
+
+  stock_entries  StockEntry[]
+  movements_from StockMovement[] @relation("MovementsFrom")
+  movements_to   StockMovement[] @relation("MovementsTo")
+
+  @@map("locations")
+}
+
+model Part {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String   @db.VarChar(200)
+  part_number    String?  @db.VarChar(100)
+  category_id    String   @db.Uuid
+  subcategory_id String?  @db.Uuid
+  hsn_code_id    String   @db.Uuid
+  package        String?  @db.VarChar(60)
+  comment        String?
+  image_url      String?
+  datasheet_url  String?
+  purchase_url   String?
+  price_per_unit Float?
+  created_by     String   @db.Uuid
+  created_at     DateTime @default(now()) @db.Timestamptz
+  updated_at     DateTime @updatedAt @db.Timestamptz
+
+  category      StockCategory     @relation(fields: [category_id], references: [id])
+  subcategory   StockSubcategory? @relation(fields: [subcategory_id], references: [id])
+  hsn_code      HsnCode           @relation(fields: [hsn_code_id], references: [id])
+  creator       User              @relation("UserCreatedParts", fields: [created_by], references: [id])
+
+  stock_entries StockEntry[]
+  movements     StockMovement[]
+
+  @@index([part_number], name: "idx_parts_pn")
+  @@index([category_id], name: "idx_parts_category")
+  @@map("parts")
+}
+
+model StockEntry {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  part_id      String   @db.Uuid
+  location_id  String   @db.Uuid
+  quantity     Int
+  unit         String   @db.VarChar(30)
+  min_quantity Int?
+  updated_at   DateTime @updatedAt @db.Timestamptz
+
+  part     Part     @relation(fields: [part_id], references: [id])
+  location Location @relation(fields: [location_id], references: [id])
+
+  @@unique([part_id, location_id])
+  @@index([location_id], name: "idx_stock_location")
+  @@map("stock_entries")
+}
+
+model StockMovement {
+  id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  part_id          String       @db.Uuid
+  from_location_id String?      @db.Uuid
+  to_location_id   String?      @db.Uuid
+  movement_type    MovementType
+  quantity         Int
+  reference        String?      @db.VarChar(120)
+  notes            String?
+  performed_by     String       @db.Uuid
+  performed_at     DateTime     @default(now()) @db.Timestamptz
+
+  part          Part      @relation(fields: [part_id], references: [id])
+  from_location Location? @relation("MovementsFrom", fields: [from_location_id], references: [id])
+  to_location   Location? @relation("MovementsTo", fields: [to_location_id], references: [id])
+  user          User      @relation("UserPerformedMovements", fields: [performed_by], references: [id])
+
+  @@index([part_id], name: "idx_movements_part")
+  @@index([performed_at], name: "idx_movements_date")
+  @@map("stock_movements")
+}
