@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { Package2, Search, Filter, Plus, ArrowLeftRight, Edit, Trash2, Loader2, AlertCircle, ExternalLink, X, MapPin, ChevronRight } from "lucide-react";
+import { Package2, Search, Filter, Plus, ArrowLeftRight, Edit, Trash2, Loader2, AlertCircle, ExternalLink, X, MapPin, ChevronRight, FileDown } from "lucide-react";
 import Link from "next/link";
 
 const formatLocationLabel = (label: string) => {
@@ -358,6 +358,7 @@ export default function PartsPage() {
   // Search/Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -377,6 +378,27 @@ export default function PartsPage() {
 
   const isViewer = session?.user?.role === "VIEWER";
   const isAdmin = session?.user?.role === "ADMIN";
+
+  const handleExportExcel = async () => {
+    try {
+      setExporting(true);
+      const res = await fetch("/api/export/stock");
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `SeculogixInStock_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert("Failed to export. Please try again.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const fetchParts = async () => {
     try {
@@ -512,6 +534,15 @@ export default function PartsPage() {
             <Plus className="w-4 h-4" /> Add Stock Item
           </Link>
         )}
+        <button
+          onClick={handleExportExcel}
+          disabled={exporting}
+          className="border border-border hover:border-primary text-text-secondary hover:text-primary font-semibold py-2 px-4 rounded text-sm flex items-center gap-2 transition-colors disabled:opacity-50"
+          title="Download full inventory report as Excel"
+        >
+          {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+          {exporting ? "Exporting..." : "Export Excel"}
+        </button>
       </div>
 
       {/* Filter and Search Bar */}
