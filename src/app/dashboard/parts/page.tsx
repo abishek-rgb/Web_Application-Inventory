@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { Package2, Search, Filter, Plus, ArrowLeftRight, Edit, Trash2, Loader2, AlertCircle, ExternalLink, X, MapPin, ChevronRight, FileDown } from "lucide-react";
+import { Package2, Search, Filter, Plus, ArrowLeftRight, Edit, Trash2, Loader2, AlertCircle, ExternalLink, X, MapPin, ChevronRight, FileDown, FileText } from "lucide-react";
 import Link from "next/link";
 
 const formatLocationLabel = (label: string) => {
@@ -359,6 +359,7 @@ export default function PartsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -397,6 +398,186 @@ export default function PartsPage() {
       alert("Failed to export. Please try again.");
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    try {
+      setExportingPdf(true);
+      const { default: jsPDF } = await import("jspdf");
+      const { default: autoTable } = await import("jspdf-autotable");
+
+      const res = await fetch("/api/export/report");
+      if (!res.ok) throw new Error("Failed to fetch report data");
+      const { parts, movements, generatedBy, generatedAt } = await res.json();
+
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageW = doc.internal.pageSize.getWidth();
+      const dateStr = new Date(generatedAt).toLocaleString("en-IN");
+
+      const clean = (label: string) =>
+        label.split(" > ")
+          .filter((p: string) => !p.toLowerCase().includes("default shelf") && !p.toLowerCase().includes("default bin"))
+          .join(" > ");
+
+      // ── Cover Header ──────────────────────────────────────────────────────
+      doc.setFillColor(20, 20, 20);
+      doc.rect(0, 0, pageW, 30, "F");
+      doc.setTextColor(230, 160, 30);
+      doc.setFontSize(22);
+      doc.setFont("helvetica", "bold");
+      doc.text("SECULOGIX", pageW / 2, 14, { align: "center" });
+      doc.setTextColor(200, 200, 200);
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.text("InStock \u2014 Inventory Report", pageW / 2, 22, { align: "center" });
+      doc.setTextColor(120, 120, 120);
+      doc.setFontSize(8);
+      doc.text(`Generated: ${dateStr}  |  By: ${generatedBy}`, pageW / 2, 28, { align: "center" });
+
+      // ── Summary Stats Box ────────────────────────────────────────────────
+      let y = 38;
+      const totalQty = parts.reduce((s: number, p: any) => s + p.stock_entries.reduce((ss: number, e: any) => ss + e.quantity, 0), 0);
+      const inStockCount = parts.filter((p: any) => p.stock_entries.some((e: any) => e.quantity > 0)).length;
+      const zeroCount = parts.length - inStockCount;
+      const catMap: Record<string, { count: number; qty: number }> = {};
+      for (const p of parts) {
+        const cat = p.category.label;
+        if (!catMap[cat]) catMap[cat] = { count: 0, qty: 0 };
+        catMap[cat].count++;
+        catMap[cat].qty += p.stock_entries.reduce((s: number, e: any) => s + e.quantity, 0);
+      }
+
+      doc.setFillColor(245, 245, 245);
+      doc.roundedRect(10, y, pageW - 20, 28, 2, 2, "F");
+      doc.setTextColor(30, 30, 30);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.text("SUMMARY", 16, y + 7);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.text(`Total Parts: ${parts.length}`, 16, y + 14);
+      doc.text(`In Stock: ${inStockCount}`, 60, y + 14);
+      doc.text(`Zero Stock: ${zeroCount}`, 100, y + 14);
+      doc.text(`Total Quantity: ${totalQty} units`, 145, y + 14);
+      doc.text(`Total Movements: ${movements.length}`, 16, y + 21);
+      const catSummary = Object.entries(catMap).map(([k, v]: any) => `${k}: ${v.count} parts / ${v.qty} units`).join("   \u2502   ");
+      doc.setTextColor(80, 80, 80);
+      doc.setFontSize(7.5);
+      const catLines = doc.splitTextToSize(catSummary, pageW - 32);
+      doc.text(catLines, 60, y + 21);
+      y += 36;
+
+      // ── Inventory Table ───────────────────────────────────────────────────
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(20, 20, 20);
+      doc.text("Stock Inventory (All Parts)", 10, y);
+      y += 4;
+
+      const invRows: any[] = [];
+      for (const part of parts) {
+        const totalPQty = part.stock_entries.reduce((s: number, e: any) => s + e.quantity, 0);
+        const status = totalPQty === 0 ? "ZERO" : part.stock_entries.some((e: any) => e.min_quantity !== null && e.quantity < e.min_quantity) ? "LOW" : "OK";
+        if (part.stock_entries.length === 0) {
+          invRows.push([part.name, part.category.label + (part.subcategory ? ` > ${part.subcategory.label}` : ""), "-", "0", "ZERO"]);
+        } else {
+          for (const entry of part.stock_entries) {
+            invRows.push([part.name, part.category.label + (part.subcategory ? ` > ${part.subcategory.label}` : ""), clean(entry.location.label), entry.quantity.toString(), status]);
+          }
+        }
+      }
+
+      autoTable(doc, {
+        startY: y,
+        head: [["Part Name", "Category", "Location", "Qty", "Status"]],
+        body: invRows,
+        styles: { fontSize: 7.5, cellPadding: 2 },
+        headStyles: { fillColor: [20, 20, 20], textColor: [230, 160, 30], fontStyle: "bold" },
+        alternateRowStyles: { fillColor: [248, 248, 248] },
+        columnStyles: {
+          0: { cellWidth: 55 }, 1: { cellWidth: 40 },
+          2: { cellWidth: 55 }, 3: { cellWidth: 14, halign: "center" },
+          4: { cellWidth: 16, halign: "center" }
+        }
+      });
+
+      // ── Movement History (narrative) ──────────────────────────────────────
+      doc.addPage();
+      doc.setFillColor(20, 20, 20);
+      doc.rect(0, 0, pageW, 18, "F");
+      doc.setTextColor(230, 160, 30);
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      doc.text("Stock Movement History", pageW / 2, 12, { align: "center" });
+      y = 24;
+
+      const mvWord: Record<string, string> = {
+        IN: "received into stock",
+        OUT: "dispatched / taken out",
+        TRANSFER: "transferred",
+        ADJUSTMENT: "adjusted by inventory audit"
+      };
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(30, 30, 30);
+
+      if (movements.length === 0) {
+        doc.text("No stock movements recorded yet.", 14, y);
+      }
+
+      for (const m of movements) {
+        const d = new Date(m.performed_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+        let sentence = "";
+        if (m.movement_type === "IN") {
+          sentence = `${d}: ${m.quantity} unit(s) of "${m.part.name}" were ${mvWord[m.movement_type]} at ${m.to_location ? clean(m.to_location.label) : "unknown location"}.`;
+        } else if (m.movement_type === "OUT") {
+          sentence = `${d}: ${m.quantity} unit(s) of "${m.part.name}" were ${mvWord[m.movement_type]} from ${m.from_location ? clean(m.from_location.label) : "unknown location"}.`;
+        } else if (m.movement_type === "TRANSFER") {
+          sentence = `${d}: ${m.quantity} unit(s) of "${m.part.name}" were ${mvWord[m.movement_type]} from ${m.from_location ? clean(m.from_location.label) : "?"} to ${m.to_location ? clean(m.to_location.label) : "?"}.`;
+        } else {
+          sentence = `${d}: Inventory of "${m.part.name}" was ${mvWord[m.movement_type]} to ${m.quantity} unit(s) at ${m.to_location ? clean(m.to_location.label) : "?"}.`;
+        }
+        if (m.reference) sentence += ` Ref: ${m.reference}.`;
+        if (m.notes) sentence += ` Notes: ${m.notes}.`;
+        sentence += ` \u2014 By ${m.user.name}.`;
+
+        const lines = doc.splitTextToSize(sentence, pageW - 24);
+        if (y + lines.length * 5 > 282) {
+          doc.addPage();
+          doc.setFillColor(20, 20, 20);
+          doc.rect(0, 0, pageW, 18, "F");
+          doc.setTextColor(230, 160, 30);
+          doc.setFontSize(13);
+          doc.setFont("helvetica", "bold");
+          doc.text("Stock Movement History (cont.)", pageW / 2, 12, { align: "center" });
+          y = 24;
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8.5);
+          doc.setTextColor(30, 30, 30);
+        }
+        doc.setFillColor(230, 160, 30);
+        doc.circle(12, y + 1.5, 1.2, "F");
+        doc.text(lines, 16, y);
+        y += lines.length * 5 + 3;
+      }
+
+      // ── Page numbers ─────────────────────────────────────────────────────
+      const totalPages = (doc as any).internal.getNumberOfPages();
+      for (let pg = 1; pg <= totalPages; pg++) {
+        doc.setPage(pg);
+        doc.setFontSize(7);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Page ${pg} of ${totalPages}  |  SECULOGIX InStock  |  ${dateStr}`, pageW / 2, 293, { align: "center" });
+      }
+
+      doc.save(`SeculogixInStock_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (err: any) {
+      console.error("PDF export error:", err);
+      alert("Failed to generate PDF: " + err.message);
+    } finally {
+      setExportingPdf(false);
     }
   };
 
@@ -538,10 +719,19 @@ export default function PartsPage() {
           onClick={handleExportExcel}
           disabled={exporting}
           className="border border-border hover:border-primary text-text-secondary hover:text-primary font-semibold py-2 px-4 rounded text-sm flex items-center gap-2 transition-colors disabled:opacity-50"
-          title="Download full inventory report as Excel"
+          title="Download full inventory as Excel (3 sheets)"
         >
           {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
-          {exporting ? "Exporting..." : "Export Excel"}
+          {exporting ? "Exporting..." : "Excel"}
+        </button>
+        <button
+          onClick={handleExportPdf}
+          disabled={exportingPdf}
+          className="border border-border hover:border-danger text-text-secondary hover:text-danger font-semibold py-2 px-4 rounded text-sm flex items-center gap-2 transition-colors disabled:opacity-50"
+          title="Download formatted PDF report with narrative movement history"
+        >
+          {exportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+          {exportingPdf ? "Generating PDF..." : "PDF Report"}
         </button>
       </div>
 
