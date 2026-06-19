@@ -878,7 +878,7 @@ export default function PartsPage() {
                           )}
                           {part.price_per_unit !== null && (
                             <span>
-                              Price: <span className="font-bold text-success">â‚¹{part.price_per_unit.toFixed(2)}</span>
+                              Price: <span className="font-bold text-success">&#x20B9;{part.price_per_unit.toFixed(2)}</span>
                             </span>
                           )}
                         </div>
@@ -1048,7 +1048,7 @@ export default function PartsPage() {
                     >
                       {hsnCodes.map((hsn) => (
                         <option key={hsn.id} value={hsn.id}>
-                          {hsn.code} â€” {hsn.description.substring(0, 40)}...
+                          {hsn.code} - {hsn.description.substring(0, 40)}...
                         </option>
                       ))}
                     </select>
