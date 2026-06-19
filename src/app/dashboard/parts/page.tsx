@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
@@ -62,7 +62,7 @@ interface Part {
   stock_entries: StockEntry[];
 }
 
-// ── Location Entry Editor ────────────────────────────────────────────────────
+// â”€â”€ Location Entry Editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function LocationEntryRow({
   entry,
   allLocations,
@@ -231,7 +231,7 @@ function LocationEntryRow({
               </select>
               {selectedLocationId !== entry.location.id && (
                 <p className="text-[10px] text-warning mt-1">
-                  ⚠ This will move all {entry.quantity} {entry.unit} to the new location.
+                  âš  This will move all {entry.quantity} {entry.unit} to the new location.
                   For partial moves, use a TRANSFER movement.
                 </p>
               )}
@@ -346,7 +346,7 @@ function LocationEntryRow({
   );
 }
 
-// ── Main Page ────────────────────────────────────────────────────────────────
+// â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function PartsPage() {
   const { data: session } = useSession();
   const [parts, setParts] = useState<Part[]>([]);
@@ -405,7 +405,6 @@ export default function PartsPage() {
     try {
       setExportingPdf(true);
       const { default: jsPDF } = await import("jspdf");
-      const { default: autoTable } = await import("jspdf-autotable");
 
       const res = await fetch("/api/export/report");
       if (!res.ok) throw new Error("Failed to fetch report data");
@@ -413,169 +412,205 @@ export default function PartsPage() {
 
       const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const pageW = doc.internal.pageSize.getWidth();
-      const dateStr = new Date(generatedAt).toLocaleString("en-IN");
+      const margin = 14;
+      const contentW = pageW - margin * 2;
+      const dateStr = new Date(generatedAt).toLocaleString("en-IN", { dateStyle: "long", timeStyle: "short" });
 
       const clean = (label: string) =>
         label.split(" > ")
           .filter((p: string) => !p.toLowerCase().includes("default shelf") && !p.toLowerCase().includes("default bin"))
           .join(" > ");
 
-      // ── Cover Header ──────────────────────────────────────────────────────
-      doc.setFillColor(20, 20, 20);
-      doc.rect(0, 0, pageW, 30, "F");
-      doc.setTextColor(230, 160, 30);
-      doc.setFontSize(22);
-      doc.setFont("helvetica", "bold");
-      doc.text("SECULOGIX", pageW / 2, 14, { align: "center" });
-      doc.setTextColor(200, 200, 200);
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "normal");
-      doc.text("InStock \u2014 Inventory Report", pageW / 2, 22, { align: "center" });
-      doc.setTextColor(120, 120, 120);
-      doc.setFontSize(8);
-      doc.text(`Generated: ${dateStr}  |  By: ${generatedBy}`, pageW / 2, 28, { align: "center" });
+      const addPageHeader = () => {
+        doc.setFillColor(20, 20, 20);
+        doc.rect(0, 0, pageW, 16, "F");
+        doc.setTextColor(230, 160, 30);
+        doc.setFontSize(9.5);
+        doc.setFont("helvetica", "bold");
+        doc.text("SECULOGIX \u2014 InStock Inventory Report", pageW / 2, 10, { align: "center" });
+      };
 
-      // ── Summary Stats Box ────────────────────────────────────────────────
-      let y = 38;
+      const writeParagraph = (text: string, y: number, size = 9.5, color: [number,number,number] = [40,40,40]): number => {
+        doc.setFontSize(size);
+        doc.setTextColor(...color);
+        doc.setFont("helvetica", "normal");
+        const lines = doc.splitTextToSize(text, contentW);
+        if (y + lines.length * 5.5 > 280) {
+          doc.addPage(); addPageHeader(); y = 24;
+        }
+        doc.text(lines, margin, y);
+        return y + lines.length * 5.5 + 3;
+      };
+
+      const writeSectionTitle = (title: string, y: number): number => {
+        if (y + 14 > 280) { doc.addPage(); addPageHeader(); y = 24; }
+        doc.setFontSize(11.5);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(20, 20, 20);
+        doc.text(title, margin, y);
+        y += 2;
+        doc.setDrawColor(230, 160, 30);
+        doc.setLineWidth(0.5);
+        doc.line(margin, y, pageW - margin, y);
+        return y + 7;
+      };
+
+      // â”€â”€ Compute stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       const totalQty = parts.reduce((s: number, p: any) => s + p.stock_entries.reduce((ss: number, e: any) => ss + e.quantity, 0), 0);
-      const inStockCount = parts.filter((p: any) => p.stock_entries.some((e: any) => e.quantity > 0)).length;
-      const zeroCount = parts.length - inStockCount;
-      const catMap: Record<string, { count: number; qty: number }> = {};
+      const inStockParts = parts.filter((p: any) => p.stock_entries.some((e: any) => e.quantity > 0));
+      const zeroStockParts = parts.filter((p: any) => p.stock_entries.length === 0 || p.stock_entries.every((e: any) => e.quantity === 0));
+      const lowStockParts = parts.filter((p: any) => p.stock_entries.some((e: any) => e.min_quantity !== null && e.quantity < e.min_quantity && e.quantity > 0));
+      const totalCost = parts.reduce((s: number, p: any) => {
+        if (!p.price_per_unit) return s;
+        return s + p.stock_entries.reduce((ss: number, e: any) => ss + e.quantity * p.price_per_unit, 0);
+      }, 0);
+      const uniqueLocations = new Set<string>();
+      for (const p of parts) for (const e of p.stock_entries) uniqueLocations.add(e.location.id);
+      const catMap: Record<string, { count: number; qty: number; cost: number }> = {};
       for (const p of parts) {
         const cat = p.category.label;
-        if (!catMap[cat]) catMap[cat] = { count: 0, qty: 0 };
+        if (!catMap[cat]) catMap[cat] = { count: 0, qty: 0, cost: 0 };
         catMap[cat].count++;
-        catMap[cat].qty += p.stock_entries.reduce((s: number, e: any) => s + e.quantity, 0);
+        const qty = p.stock_entries.reduce((s: number, e: any) => s + e.quantity, 0);
+        catMap[cat].qty += qty;
+        if (p.price_per_unit) catMap[cat].cost += qty * p.price_per_unit;
+      }
+      const inCount = movements.filter((m: any) => m.movement_type === "IN").length;
+      const outCount = movements.filter((m: any) => m.movement_type === "OUT").length;
+      const transferCount = movements.filter((m: any) => m.movement_type === "TRANSFER").length;
+      const adjCount = movements.filter((m: any) => m.movement_type === "ADJUSTMENT").length;
+
+      // â”€â”€ PAGE 1: Cover â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      doc.setFillColor(20, 20, 20);
+      doc.rect(0, 0, pageW, 42, "F");
+      doc.setTextColor(230, 160, 30);
+      doc.setFontSize(26);
+      doc.setFont("helvetica", "bold");
+      doc.text("SECULOGIX", pageW / 2, 20, { align: "center" });
+      doc.setTextColor(210, 210, 210);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      doc.text("InStock \u2014 Inventory Summary Report", pageW / 2, 30, { align: "center" });
+      doc.setTextColor(140, 140, 140);
+      doc.setFontSize(8.5);
+      doc.text(`Report Date: ${dateStr}   |   Prepared by: ${generatedBy}`, pageW / 2, 38, { align: "center" });
+
+      let y = 54;
+
+      // â”€â”€ SECTION 1: Executive Summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      y = writeSectionTitle("1. Executive Summary", y);
+      y = writeParagraph(
+        `As of ${dateStr}, the SECULOGIX InStock inventory system holds ${parts.length} registered components across ${uniqueLocations.size} storage location(s). Of these, ${inStockParts.length} part(s) are currently in stock with a combined quantity of ${totalQty} unit(s), while ${zeroStockParts.length} part(s) have zero stock available. The estimated total inventory value, based on available price-per-unit records, is \u20B9${totalCost.toFixed(2)}. A total of ${movements.length} stock movement(s) have been recorded in the system to date, comprising ${inCount} receipt(s), ${outCount} dispatch(es), ${transferCount} internal transfer(s), and ${adjCount} adjustment(s).`,
+        y
+      );
+
+      // â”€â”€ SECTION 2: Category Breakdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      y += 3;
+      y = writeSectionTitle("2. Stock Breakdown by Category", y);
+      for (const [cat, d] of Object.entries(catMap) as [string, { count: number; qty: number; cost: number }][]) {
+        y = writeParagraph(
+          `\u2022 ${cat}: ${d.count} part(s) registered, ${d.qty} unit(s) in stock${d.cost > 0 ? `, estimated value \u20B9${d.cost.toFixed(2)}` : ", cost data not available"}.`,
+          y, 9.5
+        );
       }
 
-      doc.setFillColor(245, 245, 245);
-      doc.roundedRect(10, y, pageW - 20, 28, 2, 2, "F");
-      doc.setTextColor(30, 30, 30);
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "bold");
-      doc.text("SUMMARY", 16, y + 7);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8.5);
-      doc.text(`Total Parts: ${parts.length}`, 16, y + 14);
-      doc.text(`In Stock: ${inStockCount}`, 60, y + 14);
-      doc.text(`Zero Stock: ${zeroCount}`, 100, y + 14);
-      doc.text(`Total Quantity: ${totalQty} units`, 145, y + 14);
-      doc.text(`Total Movements: ${movements.length}`, 16, y + 21);
-      const catSummary = Object.entries(catMap).map(([k, v]: any) => `${k}: ${v.count} parts / ${v.qty} units`).join("   \u2502   ");
-      doc.setTextColor(80, 80, 80);
-      doc.setFontSize(7.5);
-      const catLines = doc.splitTextToSize(catSummary, pageW - 32);
-      doc.text(catLines, 60, y + 21);
-      y += 36;
+      // â”€â”€ SECTION 3: Stock Status & Alerts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      y += 3;
+      y = writeSectionTitle("3. Stock Status & Alerts", y);
+      if (lowStockParts.length > 0) {
+        y = writeParagraph(`${lowStockParts.length} component(s) have fallen below their minimum quantity threshold and require immediate attention:`, y);
+        for (const p of lowStockParts) {
+          const entry = p.stock_entries.find((e: any) => e.min_quantity !== null && e.quantity < e.min_quantity);
+          y = writeParagraph(`\u2022 ${p.name} \u2014 Current: ${entry?.quantity ?? 0} unit(s) | Minimum required: ${entry?.min_quantity} unit(s) at ${clean(entry?.location?.label ?? "-")}.`, y, 9, [180, 100, 0]);
+        }
+      } else {
+        y = writeParagraph("All stocked components are above their minimum quantity thresholds. No immediate restocking action is required.", y);
+      }
+      if (zeroStockParts.length > 0) {
+        y += 1;
+        const names = zeroStockParts.slice(0, 8).map((p: any) => p.name).join(", ") + (zeroStockParts.length > 8 ? ` and ${zeroStockParts.length - 8} more` : "");
+        y = writeParagraph(`${zeroStockParts.length} component(s) with zero stock: ${names}.`, y, 9, [170, 50, 50]);
+      }
 
-      // ── Inventory Table ───────────────────────────────────────────────────
-      doc.setFontSize(11);
+      // â”€â”€ SECTION 4: Movement Summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      y += 3;
+      y = writeSectionTitle("4. Stock Movement Summary", y);
+      y = writeParagraph(
+        `${movements.length} stock movement(s) are recorded in total. Breakdown: ${inCount} stock receipt(s) (IN) represent components added to inventory; ${outCount} dispatch(es) (OUT) indicate components issued or removed; ${transferCount} transfer(s) reflect internal location changes; and ${adjCount} adjustment(s) account for audit corrections. These movements form the complete audit trail of all inventory activity.`,
+        y
+      );
+
+      // â”€â”€ PAGE 2+: Detailed Movement Log â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      doc.addPage();
+      addPageHeader();
+      y = 24;
+      doc.setFontSize(12);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(20, 20, 20);
-      doc.text("Stock Inventory (All Parts)", 10, y);
-      y += 4;
-
-      const invRows: any[] = [];
-      for (const part of parts) {
-        const totalPQty = part.stock_entries.reduce((s: number, e: any) => s + e.quantity, 0);
-        const status = totalPQty === 0 ? "ZERO" : part.stock_entries.some((e: any) => e.min_quantity !== null && e.quantity < e.min_quantity) ? "LOW" : "OK";
-        if (part.stock_entries.length === 0) {
-          invRows.push([part.name, part.category.label + (part.subcategory ? ` > ${part.subcategory.label}` : ""), "-", "0", "ZERO"]);
-        } else {
-          for (const entry of part.stock_entries) {
-            invRows.push([part.name, part.category.label + (part.subcategory ? ` > ${part.subcategory.label}` : ""), clean(entry.location.label), entry.quantity.toString(), status]);
-          }
-        }
-      }
-
-      autoTable(doc, {
-        startY: y,
-        head: [["Part Name", "Category", "Location", "Qty", "Status"]],
-        body: invRows,
-        styles: { fontSize: 7.5, cellPadding: 2 },
-        headStyles: { fillColor: [20, 20, 20], textColor: [230, 160, 30], fontStyle: "bold" },
-        alternateRowStyles: { fillColor: [248, 248, 248] },
-        columnStyles: {
-          0: { cellWidth: 55 }, 1: { cellWidth: 40 },
-          2: { cellWidth: 55 }, 3: { cellWidth: 14, halign: "center" },
-          4: { cellWidth: 16, halign: "center" }
-        }
-      });
-
-      // ── Movement History (narrative) ──────────────────────────────────────
-      doc.addPage();
-      doc.setFillColor(20, 20, 20);
-      doc.rect(0, 0, pageW, 18, "F");
-      doc.setTextColor(230, 160, 30);
-      doc.setFontSize(13);
-      doc.setFont("helvetica", "bold");
-      doc.text("Stock Movement History", pageW / 2, 12, { align: "center" });
-      y = 24;
+      doc.text("5. Detailed Stock Movement Log", margin, y);
+      y += 2;
+      doc.setDrawColor(230, 160, 30);
+      doc.setLineWidth(0.5);
+      doc.line(margin, y, pageW - margin, y);
+      y += 8;
 
       const mvWord: Record<string, string> = {
         IN: "received into stock",
-        OUT: "dispatched / taken out",
-        TRANSFER: "transferred",
+        OUT: "dispatched / issued out",
+        TRANSFER: "transferred internally",
         ADJUSTMENT: "adjusted by inventory audit"
       };
 
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8.5);
-      doc.setTextColor(30, 30, 30);
-
       if (movements.length === 0) {
-        doc.text("No stock movements recorded yet.", 14, y);
+        y = writeParagraph("No stock movements have been recorded yet.", y);
+      } else {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(40, 40, 40);
+
+        for (const m of movements) {
+          const d = new Date(m.performed_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+          let sentence = "";
+          if (m.movement_type === "IN") {
+            sentence = `${d}: ${m.quantity} unit(s) of "${m.part.name}" were ${mvWord.IN} at ${m.to_location ? clean(m.to_location.label) : "unknown location"}.`;
+          } else if (m.movement_type === "OUT") {
+            sentence = `${d}: ${m.quantity} unit(s) of "${m.part.name}" were ${mvWord.OUT} from ${m.from_location ? clean(m.from_location.label) : "unknown location"}.`;
+          } else if (m.movement_type === "TRANSFER") {
+            sentence = `${d}: ${m.quantity} unit(s) of "${m.part.name}" were ${mvWord.TRANSFER} from ${m.from_location ? clean(m.from_location.label) : "?"} to ${m.to_location ? clean(m.to_location.label) : "?"}.`;
+          } else {
+            sentence = `${d}: Stock of "${m.part.name}" was ${mvWord.ADJUSTMENT} to ${m.quantity} unit(s) at ${m.to_location ? clean(m.to_location.label) : "?"}.`;
+          }
+          if (m.reference) sentence += ` Reference: ${m.reference}.`;
+          if (m.notes) sentence += ` Notes: ${m.notes}.`;
+          sentence += ` \u2014 Performed by ${m.user.name}.`;
+
+          const lines = doc.splitTextToSize(sentence, contentW - 6);
+          if (y + lines.length * 5 + 5 > 282) {
+            doc.addPage(); addPageHeader(); y = 24;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(9);
+            doc.setTextColor(40, 40, 40);
+          }
+          doc.setFillColor(230, 160, 30);
+          doc.circle(margin + 1.5, y + 1.5, 1.2, "F");
+          doc.text(lines, margin + 5, y);
+          y += lines.length * 5 + 4;
+        }
       }
 
-      for (const m of movements) {
-        const d = new Date(m.performed_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
-        let sentence = "";
-        if (m.movement_type === "IN") {
-          sentence = `${d}: ${m.quantity} unit(s) of "${m.part.name}" were ${mvWord[m.movement_type]} at ${m.to_location ? clean(m.to_location.label) : "unknown location"}.`;
-        } else if (m.movement_type === "OUT") {
-          sentence = `${d}: ${m.quantity} unit(s) of "${m.part.name}" were ${mvWord[m.movement_type]} from ${m.from_location ? clean(m.from_location.label) : "unknown location"}.`;
-        } else if (m.movement_type === "TRANSFER") {
-          sentence = `${d}: ${m.quantity} unit(s) of "${m.part.name}" were ${mvWord[m.movement_type]} from ${m.from_location ? clean(m.from_location.label) : "?"} to ${m.to_location ? clean(m.to_location.label) : "?"}.`;
-        } else {
-          sentence = `${d}: Inventory of "${m.part.name}" was ${mvWord[m.movement_type]} to ${m.quantity} unit(s) at ${m.to_location ? clean(m.to_location.label) : "?"}.`;
-        }
-        if (m.reference) sentence += ` Ref: ${m.reference}.`;
-        if (m.notes) sentence += ` Notes: ${m.notes}.`;
-        sentence += ` \u2014 By ${m.user.name}.`;
-
-        const lines = doc.splitTextToSize(sentence, pageW - 24);
-        if (y + lines.length * 5 > 282) {
-          doc.addPage();
-          doc.setFillColor(20, 20, 20);
-          doc.rect(0, 0, pageW, 18, "F");
-          doc.setTextColor(230, 160, 30);
-          doc.setFontSize(13);
-          doc.setFont("helvetica", "bold");
-          doc.text("Stock Movement History (cont.)", pageW / 2, 12, { align: "center" });
-          y = 24;
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(8.5);
-          doc.setTextColor(30, 30, 30);
-        }
-        doc.setFillColor(230, 160, 30);
-        doc.circle(12, y + 1.5, 1.2, "F");
-        doc.text(lines, 16, y);
-        y += lines.length * 5 + 3;
-      }
-
-      // ── Page numbers ─────────────────────────────────────────────────────
+      // â”€â”€ Footers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       const totalPages = (doc as any).internal.getNumberOfPages();
       for (let pg = 1; pg <= totalPages; pg++) {
         doc.setPage(pg);
-        doc.setFontSize(7);
+        doc.setFontSize(7.5);
         doc.setTextColor(150, 150, 150);
-        doc.text(`Page ${pg} of ${totalPages}  |  SECULOGIX InStock  |  ${dateStr}`, pageW / 2, 293, { align: "center" });
+        doc.text(`Page ${pg} of ${totalPages}   |   SECULOGIX InStock   |   ${dateStr}`, pageW / 2, 293, { align: "center" });
       }
 
       doc.save(`SeculogixInStock_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch (err: any) {
-      console.error("PDF export error:", err);
-      alert("Failed to generate PDF: " + err.message);
+      console.error("PDF error:", err);
+      alert("PDF generation failed: " + err.message);
     } finally {
       setExportingPdf(false);
     }
@@ -707,32 +742,34 @@ export default function PartsPage() {
           <h2 className="text-2xl font-bold text-text-primary tracking-wide">Inventory Parts</h2>
           <p className="text-sm text-text-secondary">View and manage all registered hardware components</p>
         </div>
-        {!isViewer && (
-          <Link
-            href="/dashboard/parts/add"
-            className="bg-primary hover:bg-primary-dark text-bg font-bold py-2 px-4 rounded text-sm flex items-center gap-2 transition-colors"
+        <div className="flex items-center gap-2">
+          {!isViewer && (
+            <Link
+              href="/dashboard/parts/add"
+              className="bg-primary hover:bg-primary-dark text-bg font-bold py-2 px-4 rounded text-sm flex items-center gap-2 transition-colors"
+            >
+              <Plus className="w-4 h-4" /> Add Stock Item
+            </Link>
+          )}
+          <button
+            onClick={handleExportExcel}
+            disabled={exporting}
+            className="border border-border hover:border-primary text-text-secondary hover:text-primary font-semibold py-2 px-4 rounded text-sm flex items-center gap-2 transition-colors disabled:opacity-50"
+            title="Download full inventory as Excel (3 sheets)"
           >
-            <Plus className="w-4 h-4" /> Add Stock Item
-          </Link>
-        )}
-        <button
-          onClick={handleExportExcel}
-          disabled={exporting}
-          className="border border-border hover:border-primary text-text-secondary hover:text-primary font-semibold py-2 px-4 rounded text-sm flex items-center gap-2 transition-colors disabled:opacity-50"
-          title="Download full inventory as Excel (3 sheets)"
-        >
-          {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
-          {exporting ? "Exporting..." : "Excel"}
-        </button>
-        <button
-          onClick={handleExportPdf}
-          disabled={exportingPdf}
-          className="border border-border hover:border-danger text-text-secondary hover:text-danger font-semibold py-2 px-4 rounded text-sm flex items-center gap-2 transition-colors disabled:opacity-50"
-          title="Download formatted PDF report with narrative movement history"
-        >
-          {exportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-          {exportingPdf ? "Generating PDF..." : "PDF Report"}
-        </button>
+            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+            {exporting ? "Exporting..." : "Export as Excel"}
+          </button>
+          <button
+            onClick={handleExportPdf}
+            disabled={exportingPdf}
+            className="border border-border hover:border-danger text-text-secondary hover:text-danger font-semibold py-2 px-4 rounded text-sm flex items-center gap-2 transition-colors disabled:opacity-50"
+            title="Download PDF summary report"
+          >
+            {exportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+            {exportingPdf ? "Generating..." : "PDF Report"}
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -841,7 +878,7 @@ export default function PartsPage() {
                           )}
                           {part.price_per_unit !== null && (
                             <span>
-                              Price: <span className="font-bold text-success">₹{part.price_per_unit.toFixed(2)}</span>
+                              Price: <span className="font-bold text-success">â‚¹{part.price_per_unit.toFixed(2)}</span>
                             </span>
                           )}
                         </div>
@@ -964,7 +1001,7 @@ export default function PartsPage() {
               </button>
             </div>
 
-            {/* Tab Content — scrollable */}
+            {/* Tab Content â€” scrollable */}
             <div className="overflow-y-auto flex-1">
               {editTab === "specs" && (
                 <form onSubmit={handleUpdate} className="p-6 space-y-4">
@@ -1011,7 +1048,7 @@ export default function PartsPage() {
                     >
                       {hsnCodes.map((hsn) => (
                         <option key={hsn.id} value={hsn.id}>
-                          {hsn.code} — {hsn.description.substring(0, 40)}...
+                          {hsn.code} â€” {hsn.description.substring(0, 40)}...
                         </option>
                       ))}
                     </select>
