@@ -14,10 +14,22 @@ export default function EnrollOrderPage() {
   const [orderDate, setOrderDate] = useState("");
   const [purchaseSite, setPurchaseSite] = useState("");
 
+  const formatDateTimeMask = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    let formatted = '';
+    for (let i = 0; i < digits.length; i++) {
+      if (i === 2 || i === 4) formatted += '/';
+      if (i === 8) formatted += ' ';
+      if (i === 10) formatted += ':';
+      formatted += digits[i];
+    }
+    return formatted.slice(0, 16);
+  };
+
   useEffect(() => {
     const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    setOrderDate(now.toISOString().slice(0, 16));
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    setOrderDate(`${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,13 +37,22 @@ export default function EnrollOrderPage() {
     setSubmitting(true);
     setSubmitError("");
 
+    if (orderDate.length !== 16) {
+      setSubmitError("Please enter a complete date and time (DD/MM/YYYY HH:mm)");
+      setSubmitting(false);
+      return;
+    }
+    const [datePart, timePart] = orderDate.split(' ');
+    const [day, month, year] = datePart.split('/');
+    const parsedDate = `${year}-${month}-${day}T${timePart}:00`;
+
     try {
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           order_id: orderId,
-          order_date: orderDate,
+          order_date: parsedDate,
           purchase_site: purchaseSite,
         }),
       });
@@ -110,9 +131,10 @@ export default function EnrollOrderPage() {
           <div>
             <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Order Date *</label>
             <input
-              type="datetime-local"
+              type="text"
+              placeholder="DD/MM/YYYY HH:mm"
               value={orderDate}
-              onChange={(e) => setOrderDate(e.target.value)}
+              onChange={(e) => setOrderDate(formatDateTimeMask(e.target.value))}
               className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary"
               required
             />

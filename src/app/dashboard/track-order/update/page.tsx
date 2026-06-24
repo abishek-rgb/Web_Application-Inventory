@@ -43,6 +43,18 @@ export default function UpdateStatusPage() {
   const [updating, setUpdating] = useState(false);
   const [updateError, setUpdateError] = useState("");
 
+  const formatDateTimeMask = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    let formatted = '';
+    for (let i = 0; i < digits.length; i++) {
+      if (i === 2 || i === 4) formatted += '/';
+      if (i === 8) formatted += ' ';
+      if (i === 10) formatted += ':';
+      formatted += digits[i];
+    }
+    return formatted.slice(0, 16);
+  };
+
   const fetchOrders = async () => {
     setLoading(true);
     try {
@@ -66,8 +78,8 @@ export default function UpdateStatusPage() {
     setNewStatus(order.status);
     setSecurityFloor(order.security_floor || "");
     const dateToUse = order.received_date ? new Date(order.received_date) : new Date();
-    dateToUse.setMinutes(dateToUse.getMinutes() - dateToUse.getTimezoneOffset());
-    setReceivedDate(dateToUse.toISOString().slice(0, 16));
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    setReceivedDate(`${pad(dateToUse.getDate())}/${pad(dateToUse.getMonth() + 1)}/${dateToUse.getFullYear()} ${pad(dateToUse.getHours())}:${pad(dateToUse.getMinutes())}`);
     setReceivedWithInvoice(order.received_with_invoice || false);
     setUpdateError("");
   };
@@ -89,8 +101,10 @@ export default function UpdateStatusPage() {
         if (!securityFloor) throw new Error("Please specify the security floor");
         payload.security_floor = securityFloor;
       } else if (newStatus === "RECEIVED") {
-        if (!receivedDate) throw new Error("Please specify the received date");
-        payload.received_date = receivedDate;
+        if (receivedDate.length !== 16) throw new Error("Please enter a complete date and time (DD/MM/YYYY HH:mm)");
+        const [datePart, timePart] = receivedDate.split(' ');
+        const [day, month, year] = datePart.split('/');
+        payload.received_date = `${year}-${month}-${day}T${timePart}:00`;
         payload.received_with_invoice = receivedWithInvoice;
       }
 
@@ -265,9 +279,10 @@ export default function UpdateStatusPage() {
                   <div>
                     <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Date Received *</label>
                     <input
-                      type="datetime-local"
+                      type="text"
+                      placeholder="DD/MM/YYYY HH:mm"
                       value={receivedDate}
-                      onChange={(e) => setReceivedDate(e.target.value)}
+                      onChange={(e) => setReceivedDate(formatDateTimeMask(e.target.value))}
                       className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary"
                       required
                     />
