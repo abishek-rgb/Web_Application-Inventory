@@ -65,7 +65,9 @@ export default function UpdateStatusPage() {
     setSelectedOrder(order);
     setNewStatus(order.status);
     setSecurityFloor(order.security_floor || "");
-    setReceivedDate(order.received_date ? order.received_date.split("T")[0] : new Date().toISOString().split("T")[0]);
+    const dateToUse = order.received_date ? new Date(order.received_date) : new Date();
+    dateToUse.setMinutes(dateToUse.getMinutes() - dateToUse.getTimezoneOffset());
+    setReceivedDate(dateToUse.toISOString().slice(0, 16));
     setReceivedWithInvoice(order.received_with_invoice || false);
     setUpdateError("");
   };
@@ -263,7 +265,7 @@ export default function UpdateStatusPage() {
                   <div>
                     <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Date Received *</label>
                     <input
-                      type="date"
+                      type="datetime-local"
                       value={receivedDate}
                       onChange={(e) => setReceivedDate(e.target.value)}
                       className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Truck, CheckCircle } from "lucide-react";
 
@@ -13,6 +13,12 @@ export default function EnrollOrderPage() {
   const [orderId, setOrderId] = useState("");
   const [orderDate, setOrderDate] = useState("");
   const [purchaseSite, setPurchaseSite] = useState("");
+
+  useEffect(() => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    setOrderDate(now.toISOString().slice(0, 16));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,7 +110,7 @@ export default function EnrollOrderPage() {
           <div>
             <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Order Date *</label>
             <input
-              type="date"
+              type="datetime-local"
               value={orderDate}
               onChange={(e) => setOrderDate(e.target.value)}
               className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary"
