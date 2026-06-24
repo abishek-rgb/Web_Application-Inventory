@@ -105,6 +105,11 @@ export default function UpdateStatusPage() {
         const [datePart, timePart] = receivedDate.split(' ');
         const [day, month, year] = datePart.split('/');
         payload.received_date = `${year}-${month}-${day}T${timePart}:00`;
+        
+        if (isNaN(new Date(payload.received_date).getTime())) {
+          throw new Error("Please enter a valid date and time.");
+        }
+
         payload.received_with_invoice = receivedWithInvoice;
       }
 

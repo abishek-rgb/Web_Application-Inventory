@@ -45,6 +45,12 @@ export default function EnrollOrderPage() {
     const [datePart, timePart] = orderDate.split(' ');
     const [day, month, year] = datePart.split('/');
     const parsedDate = `${year}-${month}-${day}T${timePart}:00`;
+    
+    if (isNaN(new Date(parsedDate).getTime())) {
+      setSubmitError("Please enter a valid date and time.");
+      setSubmitting(false);
+      return;
+    }
 
     try {
       const res = await fetch("/api/orders", {
