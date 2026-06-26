@@ -1,23 +1,29 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-bg: #0D0D0D;
-  --color-surface: #1A1A1A;
-  --color-border: #2D2D2D;
+  --color-bg: #09090b;
+  --color-surface: #18181b;
+  --color-border: #27272a;
   
-  --color-primary: #F5A623;
-  --color-primary-dark: #C8780A;
+  --color-primary: #f59e0b;
+  --color-primary-dark: #d97706;
   
-  --color-text-primary: #F0F0F0;
-  --color-text-secondary: #9A9A9A;
+  --color-text-primary: #fafafa;
+  --color-text-secondary: #a1a1aa;
   
-  --color-success: #22C55E;
-  --color-warning: #EAB308;
-  --color-danger: #EF4444;
-  --color-info: #3B82F6;
+  --color-success: #10b981;
+  --color-warning: #fbbf24;
+  --color-danger: #ef4444;
+  --color-info: #3b82f6;
 
   --font-sans: var(--font-inter), sans-serif;
   --font-mono: var(--font-jetbrains-mono), monospace;
+
+  --animate-fade-in: fade-in 0.5s ease-out forwards;
+  --animate-slide-up: slide-up 0.5s ease-out forwards;
+  --animate-pulse-slow: pulse-slow 3s infinite ease-in-out;
+  --animate-blob: blob 10s infinite;
+  --animate-blob-reverse: blob-reverse 12s infinite;
 }
 
 :root {
@@ -26,14 +32,82 @@
 
 body {
   background-color: var(--color-bg);
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 100% 100%, rgba(245, 158, 11, 0.03) 0%, transparent 50%);
+  background-attachment: fixed;
   color: var(--color-text-primary);
   font-family: var(--font-sans);
+  overflow-x: hidden;
 }
 
 /* Base utility overrides or global styles here */
 input, textarea, select {
-  background-color: var(--color-surface);
+  background-color: rgba(24, 24, 27, 0.8);
+  backdrop-filter: blur(8px);
   color: var(--color-text-primary);
   border-color: var(--color-border);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+input:focus, textarea:focus, select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.3);
+  outline: none;
+}
+
+/* Fix Webkit Autofill */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active{
+    -webkit-box-shadow: 0 0 0 30px #18181b inset !important;
+    -webkit-text-fill-color: white !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Custom Keyframes */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.02); }
+}
+
+@keyframes blob {
+  0% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+
+@keyframes blob-reverse {
+  0% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(-30px, 50px) scale(1.2); }
+  66% { transform: translate(20px, -20px) scale(0.8); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+
+/* Glassmorphism Classes */
+.glass {
+  background: rgba(24, 24, 27, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-card {
+  background: rgba(24, 24, 27, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}

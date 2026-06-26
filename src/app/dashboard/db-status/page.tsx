@@ -1,237 +1,198 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { Database, Loader2, AlertCircle, HardDrive, Activity, TableProperties, ShieldAlert } from "lucide-react";
-import { useRouter } from "next/navigation";
-
-interface TableInfo {
-  name: string;
-  sizeBytes: number;
-}
+import { Database, HardDrive, Activity, Server, Table as TableIcon, AlertCircle, CheckCircle2 } from "lucide-react";
+import DbDistributionChart from "@/components/dashboard/DbDistributionChart";
 
 interface DbStatus {
   sizeBytes: number;
-  activeConnections: number;
-  topTables: TableInfo[];
   maxSizeBytes: number;
-  status: string;
+  activeConnections: number;
+  tables: Array<{ name: string; sizeBytes: number }>;
+  error?: string;
 }
 
-export default function DbStatusPage() {
-  const { data: session, status: sessionStatus } = useSession();
-  const router = useRouter();
-  
-  const [dbStatus, setDbStatus] = useState<DbStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+async function getDbStatus(): Promise<DbStatus> {
+  const defaultStatus = {
+    sizeBytes: 0,
+    maxSizeBytes: 500 * 1024 * 1024, // 500MB free tier
+    activeConnections: 0,
+    tables: [],
+  };
 
-  const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
-
-  useEffect(() => {
-    if (sessionStatus === "loading") return;
-    if (!isSuperAdmin) {
-      router.push("/dashboard");
-      return;
-    }
-    fetchStatus();
-  }, [sessionStatus, isSuperAdmin, router]);
-
-  const fetchStatus = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch("/api/db-status");
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to fetch DB status");
+  try {
+    const res = await fetch("http://localhost:3000/api/db-status", {
+      cache: "no-store",
+      headers: {
+        "x-super-admin": "true"
       }
-      const data = await res.json();
-      setDbStatus(data);
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch database information.");
-    } finally {
-      setLoading(false);
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to fetch database status");
     }
-  };
 
-  const formatBytes = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  if (!isSuperAdmin) {
-    return null; // Will redirect
+    const data = await res.json();
+    return { ...defaultStatus, ...data };
+  } catch (error) {
+    return {
+      ...defaultStatus,
+      error: error instanceof Error ? error.message : "Unknown database error",
+    };
   }
+}
+
+function formatBytes(bytes: number) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+export default async function DbStatusPage() {
+  const dbStatus = await getDbStatus();
+  const usagePercentage = Math.min(100, (dbStatus.sizeBytes / dbStatus.maxSizeBytes) * 100);
+  const isWarning = usagePercentage > 80;
+  const isCritical = usagePercentage > 95;
 
   return (
-    <div className="p-6 md:p-10 max-w-5xl mx-auto animate-in fade-in zoom-in-95 duration-300">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-text-primary flex items-center gap-3">
-          <Database className="w-8 h-8 text-primary" />
-          Database Health & Optimization
-        </h1>
-        <p className="text-text-secondary mt-2">
-          Monitor your Neon PostgreSQL storage limits, connections, and system health.
-        </p>
+    <div className="space-y-6">
+      <div className="flex items-center gap-3 mb-6 animate-fade-in">
+        <Database className="w-8 h-8 text-primary" />
+        <h2 className="text-2xl font-bold text-text-primary tracking-wide">Database Health</h2>
       </div>
 
-      {error && (
-        <div className="bg-danger/10 border border-danger text-danger p-4 rounded-lg mb-8 text-sm flex flex-col gap-2">
-          <div className="flex items-center font-semibold">
-            <ShieldAlert className="w-5 h-5 mr-2" />
-            Database Connection Error Detected
+      {dbStatus.error && (
+        <div className="bg-danger/10 border border-danger p-4 rounded-lg flex items-start gap-3 animate-slide-up" style={{ animationDelay: '0.1s', animationFillMode: 'both' }}>
+          <AlertCircle className="w-5 h-5 text-danger mt-0.5" />
+          <div>
+            <h3 className="text-danger font-semibold">Database Connection Error</h3>
+            <p className="text-danger/80 text-sm mt-1">{dbStatus.error}</p>
           </div>
-          <p className="ml-7 opacity-90">{error}</p>
         </div>
       )}
 
-      {loading ? (
-        <div className="flex justify-center items-center py-20">
-          <Loader2 className="w-10 h-10 animate-spin text-primary" />
-        </div>
-      ) : dbStatus ? (
-        <div className="space-y-6">
-          {/* Top Metric Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            <div className="bg-surface border border-border p-6 rounded-xl flex items-start gap-4 shadow-sm">
-              <div className="p-3 bg-primary/10 rounded-lg text-primary">
-                <HardDrive className="w-6 h-6" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Storage Capacity Card */}
+        <div className="glass-card p-6 rounded-2xl lg:col-span-2 group hover:-translate-y-1 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(245,158,11,0.15)] animate-slide-up" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary/10 p-3 rounded-xl group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300">
+                <HardDrive className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-text-secondary font-medium">Storage Used</p>
-                <h3 className="text-2xl font-bold text-text-primary mt-1">
-                  {formatBytes(dbStatus.sizeBytes)}
-                </h3>
-                <p className="text-xs text-text-secondary mt-1">
-                  Out of {formatBytes(dbStatus.maxSizeBytes)} (Free Tier)
-                </p>
+                <h3 className="text-lg font-semibold text-text-primary">Storage Capacity</h3>
+                <p className="text-sm text-text-secondary">Neon Free Tier (500 MB)</p>
               </div>
             </div>
-
-            <div className="bg-surface border border-border p-6 rounded-xl flex items-start gap-4 shadow-sm">
-              <div className="p-3 bg-secondary/10 rounded-lg text-secondary">
-                <Activity className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-text-secondary font-medium">Active Connections</p>
-                <h3 className="text-2xl font-bold text-text-primary mt-1">
-                  {dbStatus.activeConnections}
-                </h3>
-                <p className="text-xs text-text-secondary mt-1">
-                  Current concurrent queries
-                </p>
-              </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold font-mono text-text-primary">{usagePercentage.toFixed(1)}%</p>
+              <p className="text-xs text-text-secondary">Used</p>
             </div>
-
-            <div className={`bg-surface border p-6 rounded-xl flex items-start gap-4 shadow-sm ${
-                dbStatus.status === "Connected" ? "border-success/30" : "border-danger/30"
-              }`}>
-              <div className={`p-3 rounded-lg ${
-                dbStatus.status === "Connected" ? "bg-success/10 text-success" : "bg-danger/10 text-danger"
-              }`}>
-                {dbStatus.status === "Connected" ? <Database className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
-              </div>
-              <div>
-                <p className="text-sm text-text-secondary font-medium">System Status</p>
-                <h3 className={`text-2xl font-bold mt-1 ${
-                  dbStatus.status === "Connected" ? "text-success" : "text-danger"
-                }`}>
-                  {dbStatus.status}
-                </h3>
-                <p className="text-xs text-text-secondary mt-1">
-                  {dbStatus.status === "Connected" ? "Healthy & Operational" : "Action Required"}
-                </p>
-              </div>
-            </div>
-
           </div>
-
-          {/* Storage Progress Bar */}
-          <div className="bg-surface border border-border p-8 rounded-xl shadow-sm">
-            <div className="flex justify-between items-end mb-4">
-              <div>
-                <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
-                  Capacity Overview
-                </h3>
-                <p className="text-sm text-text-secondary mt-1">Database space occupied vs free limit</p>
-              </div>
-              <div className="text-right">
-                <span className="text-2xl font-bold text-primary">
-                  {((dbStatus.sizeBytes / dbStatus.maxSizeBytes) * 100).toFixed(2)}%
-                </span>
-                <span className="text-sm text-text-secondary ml-1">used</span>
-              </div>
-            </div>
-            
-            <div className="h-4 w-full bg-bg rounded-full overflow-hidden border border-border/50">
+          
+          <div className="mt-4">
+            <div className="h-4 w-full bg-surface rounded-full overflow-hidden border border-border/50">
               <div 
-                className="h-full bg-primary transition-all duration-1000 ease-out"
-                style={{ width: `${Math.min(100, (dbStatus.sizeBytes / dbStatus.maxSizeBytes) * 100)}%` }}
-              />
+                className={`h-full transition-all duration-1000 ease-out relative ${isCritical ? 'bg-danger' : isWarning ? 'bg-warning' : 'bg-primary'}`}
+                style={{ width: `${usagePercentage}%` }}
+              >
+                <div className="absolute inset-0 bg-white/20 blur-sm animate-pulse-slow" />
+              </div>
             </div>
-            <div className="flex justify-between text-xs text-text-secondary mt-3">
-              <span>0 MB</span>
-              <span>{formatBytes(dbStatus.maxSizeBytes - dbStatus.sizeBytes)} Free Space Remaining</span>
-              <span>500 MB Max</span>
-            </div>
-          </div>
-
-          {/* Table Breakdown */}
-          <div className="bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-border">
-              <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
-                <TableProperties className="w-5 h-5 text-secondary" />
-                Largest Data Tables
-              </h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-bg/50 border-b border-border text-text-secondary text-sm font-medium">
-                    <th className="py-3 px-6">Table Name</th>
-                    <th className="py-3 px-6">Size Occupied</th>
-                    <th className="py-3 px-6">Percentage of Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border text-sm text-text-primary">
-                  {dbStatus.topTables.map((table, index) => (
-                    <tr key={table.name} className="hover:bg-bg/40 transition-colors">
-                      <td className="py-3 px-6 font-medium font-mono text-xs">{table.name}</td>
-                      <td className="py-3 px-6">{formatBytes(table.sizeBytes)}</td>
-                      <td className="py-3 px-6">
-                        <div className="flex items-center gap-2">
-                          <div className="w-24 h-1.5 bg-bg rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-secondary"
-                              style={{ width: `${(table.sizeBytes / dbStatus.sizeBytes) * 100}%` }}
-                            />
-                          </div>
-                          <span className="text-xs text-text-secondary">
-                            {dbStatus.sizeBytes > 0 ? ((table.sizeBytes / dbStatus.sizeBytes) * 100).toFixed(1) : 0}%
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {dbStatus.topTables.length === 0 && (
-                    <tr>
-                      <td colSpan={3} className="py-6 text-center text-text-secondary">
-                        No table data available.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+            <div className="flex justify-between text-xs text-text-secondary mt-3 font-mono">
+              <span>{formatBytes(dbStatus.sizeBytes)}</span>
+              <span>{formatBytes(dbStatus.maxSizeBytes)}</span>
             </div>
           </div>
-
         </div>
-      ) : null}
+
+        {/* System Health Card */}
+        <div className="glass-card p-6 rounded-2xl group hover:-translate-y-1 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(16,185,129,0.15)] animate-slide-up" style={{ animationDelay: '0.3s', animationFillMode: 'both' }}>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="bg-success/10 p-3 rounded-xl group-hover:scale-110 group-hover:bg-success/20 transition-all duration-300">
+              <Activity className="w-6 h-6 text-success" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-text-primary">System Health</h3>
+              <p className="text-sm text-text-secondary">Live Metrics</p>
+            </div>
+          </div>
+
+          <div className="space-y-6 mt-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-text-secondary">
+                <Server className="w-4 h-4" />
+                <span className="text-sm">Active Connections</span>
+              </div>
+              <span className="text-lg font-bold font-mono text-text-primary">{dbStatus.activeConnections}</span>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-text-secondary">
+                <CheckCircle2 className="w-4 h-4 text-success" />
+                <span className="text-sm">Status</span>
+              </div>
+              <span className="text-sm font-semibold text-success drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
+                {dbStatus.error ? "Degraded" : "Operational"}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        {/* Table Distribution Chart */}
+        <div className="glass-card rounded-2xl overflow-hidden animate-slide-up" style={{ animationDelay: '0.4s', animationFillMode: 'both' }}>
+          <div className="p-6 border-b border-border/50 bg-surface/30 flex items-center gap-3">
+            <TableIcon className="w-5 h-5 text-primary" />
+            <h3 className="text-lg font-bold text-text-primary">Data Distribution</h3>
+          </div>
+          <div className="p-6 flex items-center justify-center">
+            <DbDistributionChart tables={dbStatus.tables} />
+          </div>
+        </div>
+
+        {/* Largest Tables Breakdown */}
+        <div className="glass-card rounded-2xl overflow-hidden animate-slide-up" style={{ animationDelay: '0.5s', animationFillMode: 'both' }}>
+          <div className="p-6 border-b border-border/50 bg-surface/30 flex items-center gap-3">
+            <TableIcon className="w-5 h-5 text-primary" />
+            <h3 className="text-lg font-bold text-text-primary">Largest Tables</h3>
+          </div>
+          <div className="p-0">
+            {dbStatus.tables.length > 0 ? (
+              <div className="divide-y divide-border/30">
+                {dbStatus.tables.slice(0, 5).map((table, i) => (
+                  <div key={table.name} className="p-4 flex items-center justify-between hover:bg-surface/50 transition-colors group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded bg-surface border border-border flex items-center justify-center text-xs font-mono text-text-secondary group-hover:border-primary/50 group-hover:text-primary transition-colors">
+                        {i + 1}
+                      </div>
+                      <span className="font-medium text-text-primary">{table.name}</span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="font-mono text-sm text-text-primary">{formatBytes(table.sizeBytes)}</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="w-24 h-1.5 bg-surface rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-primary/70 group-hover:bg-primary transition-colors"
+                            style={{ width: `${(table.sizeBytes / dbStatus.sizeBytes) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-text-secondary font-mono w-8 text-right">
+                          {((table.sizeBytes / dbStatus.sizeBytes) * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-6 text-sm text-text-secondary text-center">
+                No table data available.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

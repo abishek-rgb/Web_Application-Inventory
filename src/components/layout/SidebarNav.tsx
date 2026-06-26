@@ -51,67 +51,69 @@ export default function SidebarNav({ isSuperAdmin }: { isSuperAdmin: boolean }) 
     navItems.push({ label: "Database Health", href: "/dashboard/db-status", icon: Database });
   }
 
+  const renderLink = (item: any, isSubItem = false) => {
+    const isActive = pathname === item.href;
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 group
+          ${isSubItem ? "pl-11 text-sm my-1" : "my-1.5"}
+          ${
+            isActive
+              ? "bg-primary/10 text-primary font-semibold shadow-[inset_4px_0_0_0_rgba(245,158,11,1)]"
+              : "text-text-secondary hover:bg-surface/50 hover:text-text-primary hover:translate-x-1"
+          }
+        `}
+      >
+        <div className="flex items-center gap-3">
+          {item.icon && (
+            <item.icon 
+              className={`w-5 h-5 transition-transform duration-300 ${isActive ? "scale-110 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" : "group-hover:scale-110 group-hover:text-primary"}`} 
+            />
+          )}
+          <span>{item.label}</span>
+        </div>
+        {!isSubItem && <ChevronRight className={`w-4 h-4 opacity-0 transition-all duration-300 -translate-x-2 ${isActive ? "opacity-100 translate-x-0" : "group-hover:opacity-100 group-hover:translate-x-0"}`} />}
+      </Link>
+    );
+  };
+
   return (
-    <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
+    <nav className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar">
       {navItems.map((item) => {
-        const isActive = item.href ? pathname === item.href : false;
         const hasSubItems = item.subItems && item.subItems.length > 0;
-        const isSubItemActive = hasSubItems && item.subItems!.some(sub => pathname === sub.href);
+        const isSubItemActive = hasSubItems && item.subItems!.some((sub: any) => pathname === sub.href);
         const isOpen = openItems[item.label] ?? isSubItemActive;
 
         return (
           <div key={item.label}>
-            {item.href && !hasSubItems ? (
-              <Link
-                href={item.href}
-                className={`flex items-center px-4 py-3 rounded-md transition-colors ${
-                  isActive 
-                    ? "bg-border text-primary font-semibold" 
-                    : "text-text-primary hover:bg-border"
-                }`}
-              >
-                <item.icon className={`w-5 h-5 mr-3 ${isActive ? "text-primary" : "text-text-secondary group-hover:text-primary"}`} />
-                <span className="font-medium text-sm">{item.label}</span>
-              </Link>
-            ) : (
+            {hasSubItems ? (
               <div>
                 <button
                   onClick={() => toggleItem(item.label)}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-md transition-colors ${
-                    isSubItemActive ? "text-primary font-semibold" : "text-text-primary hover:bg-border"
-                  }`}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-text-secondary hover:bg-surface/50 hover:text-text-primary transition-all duration-300 group my-1.5 hover:translate-x-1 ${isOpen ? "bg-surface/30 text-text-primary" : ""}`}
                 >
-                  <div className="flex items-center">
-                    <item.icon className={`w-5 h-5 mr-3 ${isSubItemActive ? "text-primary" : "text-text-secondary group-hover:text-primary"}`} />
-                    <span className="font-medium text-sm">{item.label}</span>
+                  <div className="flex items-center gap-3">
+                    <item.icon className={`w-5 h-5 transition-transform duration-300 ${isSubItemActive ? "text-primary" : "group-hover:scale-110 group-hover:text-primary"}`} />
+                    <span className="font-medium">{item.label}</span>
                   </div>
                   {isOpen ? (
-                    <ChevronDown className="w-4 h-4 text-text-secondary" />
+                    <ChevronDown className="w-4 h-4 transition-transform duration-300 text-primary" />
                   ) : (
-                    <ChevronRight className="w-4 h-4 text-text-secondary" />
+                    <ChevronRight className="w-4 h-4 transition-transform duration-300" />
                   )}
                 </button>
-                {isOpen && hasSubItems && (
-                  <div className="ml-8 mt-1 space-y-1">
-                    {item.subItems!.map((subItem) => {
-                      const isSubActive = pathname === subItem.href;
-                      return (
-                        <Link
-                          key={subItem.href}
-                          href={subItem.href}
-                          className={`block px-4 py-2 rounded-md transition-colors text-sm ${
-                            isSubActive
-                              ? "bg-border text-primary font-medium"
-                              : "text-text-secondary hover:bg-border hover:text-text-primary"
-                          }`}
-                        >
-                          {subItem.label}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
+                <div 
+                  className={`overflow-hidden transition-all duration-500 ease-in-out ${isOpen ? "max-h-48 opacity-100 mt-1" : "max-h-0 opacity-0"}`}
+                >
+                  {item.subItems!.map((subItem: any) => (
+                    renderLink(subItem, true)
+                  ))}
+                </div>
               </div>
+            ) : (
+              renderLink(item)
             )}
           </div>
         );
