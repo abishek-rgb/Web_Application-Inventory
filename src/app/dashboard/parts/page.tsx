@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
@@ -845,7 +845,12 @@ export default function PartsPage() {
                     <tr key={part.id} className={`${rowBg} hover:bg-bg/40 transition-colors`}>
                       <td className="py-4 px-6 space-y-1">
                         <div className="font-bold text-text-primary">{part.name}</div>
-                        <div className="flex items-center gap-3 text-xs text-text-secondary">
+                        <div className="flex items-center flex-wrap gap-3 text-xs text-text-secondary">
+                          {part.comment && (
+                            <span className="text-info max-w-[200px] truncate" title={part.comment}>
+                              {part.comment}
+                            </span>
+                          )}
                           {part.part_number && (
                             <span>
                               PN: <span className="font-mono text-primary">{part.part_number}</span>
