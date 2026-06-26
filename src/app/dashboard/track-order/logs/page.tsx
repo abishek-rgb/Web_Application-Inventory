@@ -154,7 +154,7 @@ export default function OrderLogsPage() {
                             {order.status.replace("_", " ")}
                           </span>
                           {order.status === "RECEIVED" && order.received_with_invoice && (
-                            <FileText className="w-4 h-4 text-info" title="Invoice Received" />
+                            <span title="Invoice Received"><FileText className="w-4 h-4 text-info" /></span>
                           )}
                         </div>
                         {order.status === "RECEIVED" && order.received_date && (
