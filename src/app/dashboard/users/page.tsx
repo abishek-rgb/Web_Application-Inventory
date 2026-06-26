@@ -27,7 +27,7 @@ export default function UsersPage() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
-  const isAdmin = session?.user?.role === "ADMIN";
+  const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
 
   const fetchUsers = async () => {
     try {
@@ -43,12 +43,12 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isSuperAdmin) {
       fetchUsers();
     } else if (session) {
       setLoading(false);
     }
-  }, [isAdmin, session]);
+  }, [isSuperAdmin, session]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,13 +116,13 @@ export default function UsersPage() {
     }
   };
 
-  if (session && !isAdmin) {
+  if (session && !isSuperAdmin) {
     return (
       <div className="bg-surface border border-border p-8 rounded-lg max-w-xl mx-auto mt-12 text-center space-y-4">
         <Shield className="w-16 h-16 text-danger mx-auto" />
         <h2 className="text-xl font-bold text-text-primary">Access Denied</h2>
         <p className="text-sm text-text-secondary">
-          You do not have permission to access the User Management panel. This module is restricted to administrators only.
+          You do not have permission to access the User Management panel. This module is restricted to super administrators only.
         </p>
       </div>
     );
@@ -178,8 +178,8 @@ export default function UsersPage() {
                           className="bg-bg border border-border rounded text-xs px-2 py-1 text-text-primary focus:outline-none focus:border-primary"
                           disabled={u.email === session?.user?.email} // Cannot edit own role
                         >
+                          <option value="SUPER_ADMIN">SUPER_ADMIN</option>
                           <option value="ADMIN">ADMIN</option>
-                          <option value="OPERATOR">OPERATOR</option>
                           <option value="VIEWER">VIEWER</option>
                         </select>
                       </td>
@@ -276,8 +276,8 @@ export default function UsersPage() {
                 className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary"
               >
                 <option value="VIEWER">VIEWER (Read-only)</option>
-                <option value="OPERATOR">OPERATOR (Add/Edit stock, log movements)</option>
-                <option value="ADMIN">ADMIN (Full access + administration)</option>
+                <option value="ADMIN">ADMIN (Manage stock and orders)</option>
+                <option value="SUPER_ADMIN">SUPER_ADMIN (Full access + administration)</option>
               </select>
             </div>
 

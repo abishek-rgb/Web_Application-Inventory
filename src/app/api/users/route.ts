@@ -9,8 +9,8 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 });
+  if (session.user.role !== "SUPER_ADMIN") {
+    return NextResponse.json({ error: "Forbidden - Super Admin access required" }, { status: 403 });
   }
 
   try {
@@ -37,8 +37,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 });
+  if (session.user.role !== "SUPER_ADMIN") {
+    return NextResponse.json({ error: "Forbidden - Super Admin access required" }, { status: 403 });
   }
 
   try {

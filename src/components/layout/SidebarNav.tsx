@@ -17,7 +17,7 @@ import {
   Truck
 } from "lucide-react";
 
-export default function SidebarNav({ isAdmin }: { isAdmin: boolean }) {
+export default function SidebarNav({ isSuperAdmin }: { isSuperAdmin: boolean }) {
   const pathname = usePathname();
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
 
@@ -45,7 +45,7 @@ export default function SidebarNav({ isAdmin }: { isAdmin: boolean }) {
     },
   ];
 
-  if (isAdmin) {
+  if (isSuperAdmin) {
     navItems.push({ label: "Users", href: "/dashboard/users", icon: Users });
   }
 

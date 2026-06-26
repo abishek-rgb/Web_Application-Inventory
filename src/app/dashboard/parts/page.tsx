@@ -379,6 +379,35 @@ export default function PartsPage() {
 
   const isViewer = session?.user?.role === "VIEWER";
   const isAdmin = session?.user?.role === "ADMIN";
+  const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
+
+  const fetchParts = async () => {
+    try {
+      const res = await fetch("/api/parts");
+      if (!res.ok) throw new Error("Failed to fetch parts");
+      const data = await res.json();
+      setParts(data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeletePart = async (partId: string) => {
+    if (!confirm("Are you sure you want to permanently delete this part and all its stock history?")) return;
+    
+    try {
+      const res = await fetch(`/api/parts/${partId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete part");
+      }
+      fetchParts();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
 
   const handleExportExcel = async () => {
     try {
@@ -941,9 +970,9 @@ export default function PartsPage() {
                               </Link>
                             </>
                           )}
-                          {isAdmin && (
+                          {isSuperAdmin && (
                             <button
-                              onClick={() => handleDelete(part.id)}
+                              onClick={() => handleDeletePart(part.id)}
                               className="p-1.5 text-text-secondary hover:text-danger hover:bg-danger/10 rounded transition-colors"
                               title="Delete Part"
                             >

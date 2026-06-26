@@ -6,7 +6,7 @@ import SidebarNav from "./SidebarNav";
 
 export default async function Sidebar() {
   const session = await auth();
-  const isAdmin = session?.user?.role === "ADMIN";
+  const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
 
   return (
     <aside className="w-64 bg-surface border-r border-border h-full flex flex-col">
@@ -17,7 +17,7 @@ export default async function Sidebar() {
         <p className="text-text-secondary text-xs mt-2">InStock Inventory</p>
       </div>
 
-      <SidebarNav isAdmin={isAdmin} />
+      <SidebarNav isSuperAdmin={isSuperAdmin} />
 
       <div className="p-4 border-t border-border">
         <div className="flex items-center justify-between px-4 py-2">

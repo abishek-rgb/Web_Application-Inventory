@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Package, Search, ExternalLink, Loader2, FileText, CheckCircle, XCircle } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { Package, Search, ExternalLink, Loader2, FileText, CheckCircle, XCircle, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 interface Order {
@@ -22,6 +22,8 @@ interface Order {
 }
 
 export default function OrderLogsPage() {
+  const { data: session } = useSession();
+  const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -43,6 +45,20 @@ export default function OrderLogsPage() {
   useEffect(() => {
     fetchOrders();
   }, []);
+
+  const handleDelete = async (orderId: string) => {
+    if (!confirm("Are you sure you want to permanently delete this order log?")) return;
+    
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "DELETE"
+      });
+      if (!res.ok) throw new Error("Failed to delete order");
+      fetchOrders();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
 
   const filteredOrders = orders.filter((o) =>
     o.order_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -111,6 +127,7 @@ export default function OrderLogsPage() {
                   <th className="py-4 px-6">Purchase Site</th>
                   <th className="py-4 px-6 text-right">Price (INR)</th>
                   <th className="py-4 px-6">Status</th>
+                  {isSuperAdmin && <th className="py-4 px-6 text-right">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40 text-sm text-text-primary">
@@ -163,6 +180,17 @@ export default function OrderLogsPage() {
                           </div>
                         )}
                       </td>
+                      {isSuperAdmin && (
+                        <td className="py-4 px-6 text-right">
+                          <button
+                            onClick={() => handleDelete(order.id)}
+                            className="p-1.5 text-text-secondary hover:text-danger hover:bg-danger/10 rounded transition-colors"
+                            title="Delete Order Log"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}

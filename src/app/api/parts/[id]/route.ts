@@ -94,28 +94,31 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden - Admin access required" }, { status: 403 });
+  if (session.user.role !== "SUPER_ADMIN") {
+    return NextResponse.json({ error: "Forbidden - Super Admin access required" }, { status: 403 });
   }
 
   try {
     const { id } = await params;
-
-    // Use transaction to delete stock entries, movements, and then the part itself
-    await prisma.$transaction(async (tx) => {
-      await tx.stockMovement.deleteMany({
-        where: { part_id: id }
-      });
-      await tx.stockEntry.deleteMany({
-        where: { part_id: id }
-      });
-      await tx.part.delete({
-        where: { id }
-      });
+    
+    // Check if part exists
+    const part = await prisma.part.findUnique({
+      where: { id }
     });
 
+    if (!part) {
+      return NextResponse.json({ error: "Part not found" }, { status: 404 });
+    }
+
+    // Must delete related records first or use cascading deletes
+    await prisma.$transaction([
+      prisma.stockEntry.deleteMany({ where: { part_id: id } }),
+      prisma.stockMovement.deleteMany({ where: { part_id: id } }),
+      prisma.part.delete({ where: { id } })
+    ]);
+
     return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: (error as any).message }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

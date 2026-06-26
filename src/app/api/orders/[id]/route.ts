@@ -52,3 +52,32 @@ export async function PATCH(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (session.user.role !== "SUPER_ADMIN") {
+    return NextResponse.json({ error: "Forbidden - Super Admin access required" }, { status: 403 });
+  }
+
+  try {
+    const { id } = await params;
+    
+    await prisma.trackedOrder.delete({
+      where: { id }
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
