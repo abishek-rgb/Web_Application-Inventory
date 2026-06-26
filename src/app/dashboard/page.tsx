@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { Package2, AlertTriangle, Layers, Activity } from "lucide-react";
+import { Package2, AlertTriangle, Layers, Activity, Clock, CheckCircle } from "lucide-react";
 import Link from "next/link";
 
 export default async function DashboardPage() {
@@ -18,7 +18,15 @@ export default async function DashboardPage() {
   `;
   const lowStockEntries = Number(lowStockEntriesResult[0]?.count || 0);
 
-  // 4. Recent Activity
+  // 4. Order Stats
+  const pendingOrders = await prisma.trackedOrder.count({
+    where: { status: { not: "RECEIVED" } }
+  });
+  const receivedOrders = await prisma.trackedOrder.count({
+    where: { status: "RECEIVED" }
+  });
+
+  // 5. Recent Activity
   const recentMovements = await prisma.stockMovement.findMany({
     take: 10,
     orderBy: { performed_at: "desc" },
@@ -30,7 +38,7 @@ export default async function DashboardPage() {
       <h2 className="text-2xl font-bold text-text-primary tracking-wide mb-6">Overview</h2>
 
       {/* Widget Cards Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-surface border border-border p-6 rounded-lg shadow-sm flex items-center">
           <div className="bg-primary/10 p-4 rounded-full mr-4">
             <Package2 className="w-6 h-6 text-primary" />
@@ -58,6 +66,26 @@ export default async function DashboardPage() {
           <div>
             <p className="text-sm text-text-secondary font-medium">Low Stock Alerts</p>
             <p className="text-3xl font-bold text-danger mt-1 font-mono">{lowStockEntries}</p>
+          </div>
+        </div>
+
+        <div className="bg-surface border border-border p-6 rounded-lg shadow-sm flex items-center">
+          <div className="bg-warning/10 p-4 rounded-full mr-4">
+            <Clock className="w-6 h-6 text-warning" />
+          </div>
+          <div>
+            <p className="text-sm text-text-secondary font-medium">Pending Orders</p>
+            <p className="text-3xl font-bold text-warning mt-1 font-mono">{pendingOrders}</p>
+          </div>
+        </div>
+
+        <div className="bg-surface border border-border p-6 rounded-lg shadow-sm flex items-center">
+          <div className="bg-success/10 p-4 rounded-full mr-4">
+            <CheckCircle className="w-6 h-6 text-success" />
+          </div>
+          <div>
+            <p className="text-sm text-text-secondary font-medium">Received Orders</p>
+            <p className="text-3xl font-bold text-success mt-1 font-mono">{receivedOrders}</p>
           </div>
         </div>
         
