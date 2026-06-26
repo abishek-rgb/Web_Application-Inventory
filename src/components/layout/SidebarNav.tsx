@@ -28,6 +28,7 @@ export default function SidebarNav({ isAdmin }: { isAdmin: boolean }) {
   const navItems = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Add Stock", href: "/dashboard/parts/add", icon: Plus },
+    { label: "Import Excel", href: "/dashboard/import", icon: Plus },
     { label: "All Parts", href: "/dashboard/parts", icon: Package2 },
     { label: "Find Stock", href: "/dashboard/search", icon: Search },
     { label: "Movements", href: "/dashboard/movements", icon: ArrowLeftRight },
