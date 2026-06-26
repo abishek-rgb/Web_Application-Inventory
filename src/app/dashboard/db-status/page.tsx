@@ -1,5 +1,6 @@
 import { Database, HardDrive, Activity, Server, Table as TableIcon, AlertCircle, CheckCircle2 } from "lucide-react";
 import DbDistributionChart from "@/components/dashboard/DbDistributionChart";
+import { prisma } from "@/lib/prisma";
 
 interface DbStatus {
   sizeBytes: number;
@@ -12,25 +13,39 @@ interface DbStatus {
 async function getDbStatus(): Promise<DbStatus> {
   const defaultStatus = {
     sizeBytes: 0,
-    maxSizeBytes: 500 * 1024 * 1024, // 500MB free tier
+    maxSizeBytes: 524288000, // 500 MB hardcoded for Neon Free Tier
     activeConnections: 0,
     tables: [],
   };
 
   try {
-    const res = await fetch("http://localhost:3000/api/db-status", {
-      cache: "no-store",
-      headers: {
-        "x-super-admin": "true"
-      }
-    });
+    // Total DB Size
+    const sizeResult: any[] = await prisma.$queryRaw`SELECT pg_database_size(current_database()) as size_bytes`;
+    const sizeBytes = sizeResult[0]?.size_bytes ? Number(sizeResult[0].size_bytes) : 0;
 
-    if (!res.ok) {
-      throw new Error("Failed to fetch database status");
-    }
+    // Active Connections
+    const connectionsResult: any[] = await prisma.$queryRaw`SELECT count(*) as active_connections FROM pg_stat_activity`;
+    const activeConnections = connectionsResult[0]?.active_connections ? Number(connectionsResult[0].active_connections) : 0;
 
-    const data = await res.json();
-    return { ...defaultStatus, ...data };
+    // Top 5 Largest Tables
+    const tablesResult: any[] = await prisma.$queryRaw`
+      SELECT relname as table_name, pg_total_relation_size(relid) as size_bytes
+      FROM pg_catalog.pg_statio_user_tables 
+      ORDER BY pg_total_relation_size(relid) DESC 
+      LIMIT 5
+    `;
+
+    const topTables = tablesResult.map((t) => ({
+      name: t.table_name,
+      sizeBytes: Number(t.size_bytes),
+    }));
+
+    return {
+      sizeBytes,
+      maxSizeBytes: 524288000,
+      activeConnections,
+      tables: topTables
+    };
   } catch (error) {
     return {
       ...defaultStatus,
