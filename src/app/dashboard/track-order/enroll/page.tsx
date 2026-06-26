@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Truck, CheckCircle } from "lucide-react";
+import { AutocompleteInput } from "@/components/ui/AutocompleteInput";
 
 export default function EnrollOrderPage() {
   const router = useRouter();
@@ -163,18 +164,14 @@ export default function EnrollOrderPage() {
 
           <div>
             <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Purchase Site / Vendor *</label>
-            <input
-              type="text"
+            <AutocompleteInput
               value={purchaseSite}
-              onChange={(e) => setPurchaseSite(e.target.value)}
+              onChangeText={setPurchaseSite}
+              suggestions={siteSuggestions}
               placeholder="e.g. Amazon, Mouser, DigiKey"
               className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary"
-              list="site_suggestions"
               required
             />
-            <datalist id="site_suggestions">
-              {siteSuggestions.map((s, i) => <option key={i} value={s} />)}
-            </datalist>
           </div>
 
           <div>

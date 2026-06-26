@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Loader2, AlertCircle, CheckCircle, ChevronLeft, ChevronRight, LayoutGrid, FileText, MapPin, ClipboardCheck, Zap, Cpu, Wifi, Box } from "lucide-react";
+import { AutocompleteInput } from "@/components/ui/AutocompleteInput";
 
 interface HsnCode {
   id: string;
@@ -520,33 +521,25 @@ export default function AddPartWizard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Part Name *</label>
-                <input
-                  type="text"
+                <AutocompleteInput
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChangeText={setName}
+                  suggestions={nameSuggestions}
                   placeholder="e.g. Resistor 10k 1/4W"
                   className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary"
-                  list="name_suggestions"
                   required
                 />
-                <datalist id="name_suggestions">
-                  {nameSuggestions.map((s, i) => <option key={i} value={s} />)}
-                </datalist>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Part Number</label>
-                <input
-                  type="text"
+                <AutocompleteInput
                   value={partNumber}
-                  onChange={(e) => setPartNumber(e.target.value)}
+                  onChangeText={setPartNumber}
+                  suggestions={numberSuggestions}
                   placeholder="Manufacturer Part Number"
                   className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary"
-                  list="number_suggestions"
                 />
-                <datalist id="number_suggestions">
-                  {numberSuggestions.map((s, i) => <option key={i} value={s} />)}
-                </datalist>
               </div>
             </div>
 
@@ -570,17 +563,13 @@ export default function AddPartWizard() {
 
               <div>
                 <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Package</label>
-                <input
-                  type="text"
+                <AutocompleteInput
                   value={pkg}
-                  onChange={(e) => setPkg(e.target.value)}
+                  onChangeText={setPkg}
+                  suggestions={packageSuggestions}
                   placeholder="e.g. 0603, SOT-23, DIP-8"
                   className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary"
-                  list="package_suggestions"
                 />
-                <datalist id="package_suggestions">
-                  {packageSuggestions.map((s, i) => <option key={i} value={s} />)}
-                </datalist>
               </div>
             </div>
 
@@ -689,18 +678,14 @@ export default function AddPartWizard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Zone *</label>
-                    <input
-                      type="text"
+                    <AutocompleteInput
                       value={newZone}
-                      onChange={(e) => setNewZone(e.target.value)}
+                      onChangeText={setNewZone}
+                      suggestions={zoneSuggestions}
                       placeholder="e.g. Store, Component Lab"
                       className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary"
-                      list="zone_suggestions"
                       required
                     />
-                    <datalist id="zone_suggestions">
-                      {zoneSuggestions.map((s, i) => <option key={i} value={s} />)}
-                    </datalist>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Rack</label>
