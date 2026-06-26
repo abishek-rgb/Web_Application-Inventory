@@ -50,3 +50,34 @@ export async function PUT(
     return NextResponse.json({ error: (error as any).message }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (session.user.role !== "SUPER_ADMIN") {
+    return NextResponse.json({ error: "Forbidden - Super Admin access required" }, { status: 403 });
+  }
+
+  try {
+    const { id } = await params;
+
+    // Optional: Prevent deleting the currently logged-in user
+    if (session.user.id === id) {
+      return NextResponse.json({ error: "Cannot delete your own account" }, { status: 400 });
+    }
+
+    await prisma.user.delete({
+      where: { id }
+    });
+
+    return NextResponse.json({ message: "User deleted successfully" });
+  } catch (error) {
+    return NextResponse.json({ error: (error as any).message }, { status: 500 });
+  }
+}

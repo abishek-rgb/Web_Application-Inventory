@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { Users, Plus, Loader2, AlertCircle, Shield, UserX, UserCheck } from "lucide-react";
+import { Users, Plus, Loader2, AlertCircle, Shield, UserX, UserCheck, Trash2 } from "lucide-react";
 
 interface UserItem {
   id: string;
@@ -116,6 +116,25 @@ export default function UsersPage() {
     }
   };
 
+  const deleteUser = async (user: UserItem) => {
+    const confirmMsg = `WARNING: The user '${user.name}' (${user.email}) will be removed. The details of the user and access of the user will also be removed completely. \n\nIf you click OK, remove the user permanently. If you click Cancel, you can cancel the process.`;
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to delete user");
+      }
+
+      fetchUsers();
+    } catch (err) {
+      alert("Failed to delete user.");
+    }
+  };
+
   if (session && !isSuperAdmin) {
     return (
       <div className="bg-surface border border-border p-8 rounded-lg max-w-xl mx-auto mt-12 text-center space-y-4">
@@ -191,16 +210,29 @@ export default function UsersPage() {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <button
-                          onClick={() => toggleStatus(u)}
-                          className={`p-1.5 rounded transition-colors ${
-                            u.is_active ? "text-text-secondary hover:text-danger hover:bg-danger/10" : "text-text-secondary hover:text-success hover:bg-success/10"
-                          }`}
-                          disabled={u.email === session?.user?.email} // Cannot disable self
-                          title={u.is_active ? "Disable User" : "Enable User"}
-                        >
-                          {u.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                        </button>
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => toggleStatus(u)}
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded transition-colors text-xs font-semibold ${
+                              u.is_active ? "bg-warning/10 text-warning hover:bg-warning/20" : "bg-success/10 text-success hover:bg-success/20"
+                            }`}
+                            disabled={u.email === session?.user?.email} // Cannot disable self
+                            title={u.is_active ? "Deny Access" : "Grant Access"}
+                          >
+                            {u.is_active ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
+                            {u.is_active ? "Deny Access" : "Grant Access"}
+                          </button>
+
+                          <button
+                            onClick={() => deleteUser(u)}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-danger/10 text-danger hover:bg-danger/20 rounded transition-colors text-xs font-semibold"
+                            disabled={u.email === session?.user?.email} // Cannot delete self
+                            title="Remove User"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Remove
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
