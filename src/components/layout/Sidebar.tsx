@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { LogOut } from "lucide-react";
 import { auth } from "@/lib/auth";
 import SidebarNav from "./SidebarNav";
@@ -10,8 +11,10 @@ export default async function Sidebar() {
   return (
     <aside className="w-64 bg-surface border-r border-border h-full flex flex-col">
       <div className="p-6">
-        <h1 className="text-primary font-bold text-2xl tracking-wider">SECULOGIX</h1>
-        <p className="text-text-secondary text-xs mt-1">InStock Inventory</p>
+        <Link href="/dashboard" className="block w-40">
+          <Image src="/logo.png" alt="SecuLogix Logo" width={160} height={40} className="w-full h-auto object-contain" />
+        </Link>
+        <p className="text-text-secondary text-xs mt-2">InStock Inventory</p>
       </div>
 
       <SidebarNav isAdmin={isAdmin} />
