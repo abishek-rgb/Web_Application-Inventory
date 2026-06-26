@@ -195,7 +195,6 @@ export default function UsersPage() {
                           value={u.role}
                           onChange={(e) => changeRole(u, e.target.value)}
                           className="bg-bg border border-border rounded text-xs px-2 py-1 text-text-primary focus:outline-none focus:border-primary"
-                          disabled={u.email === session?.user?.email} // Cannot edit own role
                         >
                           <option value="SUPER_ADMIN">SUPER_ADMIN</option>
                           <option value="ADMIN">ADMIN</option>
