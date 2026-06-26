@@ -77,7 +77,10 @@ export async function DELETE(
     });
 
     return NextResponse.json({ message: "User deleted successfully" });
-  } catch (error) {
-    return NextResponse.json({ error: (error as any).message }, { status: 500 });
+  } catch (error: any) {
+    if (error.code === 'P2003') {
+      return NextResponse.json({ error: "This user cannot be removed because they have created parts, orders, or stock movements. Please use 'Deny Access' to disable their account instead." }, { status: 400 });
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { Users, Plus, Loader2, AlertCircle, Shield, UserX, UserCheck, Trash2 } from "lucide-react";
 
 interface UserItem {
@@ -124,6 +124,11 @@ export default function UsersPage() {
       }
 
       fetchUsers();
+
+      // If user demotes themselves, log them out for security so they receive their new token on next login
+      if (user.email === session?.user?.email && newRole !== "SUPER_ADMIN") {
+        signOut({ callbackUrl: "/login" });
+      }
     } catch (err) {
       alert("Failed to update role.");
     }
@@ -144,12 +149,13 @@ export default function UsersPage() {
       });
 
       if (!res.ok) {
-        throw new Error("Failed to delete user");
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete user");
       }
 
       fetchUsers();
-    } catch (err) {
-      alert("Failed to delete user.");
+    } catch (err: any) {
+      alert(err.message || "Failed to delete user.");
     }
   };
 
