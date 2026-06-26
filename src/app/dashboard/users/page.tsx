@@ -80,7 +80,14 @@ export default function UsersPage() {
     }
   };
 
+  const getSuperAdminCount = () => users.filter(u => u.role === "SUPER_ADMIN" && u.is_active).length;
+
   const toggleStatus = async (user: UserItem) => {
+    if (user.role === "SUPER_ADMIN" && user.is_active && getSuperAdminCount() <= 1) {
+      alert("You must have at least one active SUPER_ADMIN.");
+      return;
+    }
+    
     try {
       const res = await fetch(`/api/users/${user.id}`, {
         method: "PUT",
@@ -99,6 +106,12 @@ export default function UsersPage() {
   };
 
   const changeRole = async (user: UserItem, newRole: string) => {
+    if (user.role === "SUPER_ADMIN" && newRole !== "SUPER_ADMIN" && getSuperAdminCount() <= 1) {
+      alert("You must have at least one SUPER_ADMIN.");
+      fetchUsers(); // Re-fetch to reset the dropdown UI
+      return;
+    }
+
     try {
       const res = await fetch(`/api/users/${user.id}`, {
         method: "PUT",
@@ -117,6 +130,11 @@ export default function UsersPage() {
   };
 
   const deleteUser = async (user: UserItem) => {
+    if (user.role === "SUPER_ADMIN" && getSuperAdminCount() <= 1) {
+      alert("You must have at least one SUPER_ADMIN.");
+      return;
+    }
+
     const confirmMsg = `WARNING: The user '${user.name}' (${user.email}) will be removed. The details of the user and access of the user will also be removed completely. \n\nIf you click OK, remove the user permanently. If you click Cancel, you can cancel the process.`;
     if (!confirm(confirmMsg)) return;
 
