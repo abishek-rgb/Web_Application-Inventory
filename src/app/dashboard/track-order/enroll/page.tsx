@@ -13,6 +13,7 @@ export default function EnrollOrderPage() {
   const [orderId, setOrderId] = useState("");
   const [orderDate, setOrderDate] = useState("");
   const [purchaseSite, setPurchaseSite] = useState("");
+  const [totalPrice, setTotalPrice] = useState("");
 
   const formatDateTimeMask = (value: string) => {
     const digits = value.replace(/\D/g, '');
@@ -62,6 +63,7 @@ export default function EnrollOrderPage() {
           order_id: orderId,
           order_date: parsedDate,
           purchase_site: purchaseSite,
+          total_price: totalPrice ? parseFloat(totalPrice) : null,
         }),
       });
 
@@ -93,6 +95,7 @@ export default function EnrollOrderPage() {
               setOrderId("");
               setOrderDate("");
               setPurchaseSite("");
+              setTotalPrice("");
             }}
             className="border border-border hover:bg-bg/40 px-4 py-2 rounded text-sm text-text-primary transition-colors"
           >
@@ -157,6 +160,19 @@ export default function EnrollOrderPage() {
               placeholder="e.g. Amazon, Mouser, DigiKey"
               className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary"
               required
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Total Price (INR)</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={totalPrice}
+              onChange={(e) => setTotalPrice(e.target.value)}
+              placeholder="e.g. 1500.50"
+              className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary font-mono"
             />
           </div>
 

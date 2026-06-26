@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { order_id, order_date, purchase_site } = body;
+    const { order_id, order_date, purchase_site, total_price } = body;
 
     if (!order_id || !order_date || !purchase_site) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
         order_id,
         order_date: new Date(order_date),
         purchase_site,
+        total_price: total_price ? parseFloat(total_price) : null,
         status: "ENROLLED",
         created_by: session.user.id
       }

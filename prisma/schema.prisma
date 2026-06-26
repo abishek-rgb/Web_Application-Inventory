@@ -177,6 +177,7 @@ model TrackedOrder {
   security_floor        String?     @db.VarChar(80)
   received_date         DateTime?   @db.Timestamptz
   received_with_invoice Boolean?
+  total_price           Float?
 
   created_by            String      @db.Uuid
   updated_at            DateTime    @updatedAt @db.Timestamptz

@@ -40,6 +40,7 @@ export default function SidebarNav({ isAdmin }: { isAdmin: boolean }) {
       subItems: [
         { label: "Enroll New Order", href: "/dashboard/track-order/enroll" },
         { label: "Update Status", href: "/dashboard/track-order/update" },
+        { label: "Order Logs", href: "/dashboard/track-order/logs" },
       ],
     },
   ];
