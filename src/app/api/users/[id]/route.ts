@@ -72,15 +72,27 @@ export async function DELETE(
       return NextResponse.json({ error: "Cannot delete your own account" }, { status: 400 });
     }
 
-    await prisma.user.delete({
-      where: { id }
-    });
+    // Transfer ownership of all records to the admin performing the deletion
+    await prisma.$transaction([
+      prisma.part.updateMany({
+        where: { created_by: id },
+        data: { created_by: session.user.id }
+      }),
+      prisma.stockMovement.updateMany({
+        where: { performed_by: id },
+        data: { performed_by: session.user.id }
+      }),
+      prisma.trackedOrder.updateMany({
+        where: { created_by: id },
+        data: { created_by: session.user.id }
+      }),
+      prisma.user.delete({
+        where: { id }
+      })
+    ]);
 
     return NextResponse.json({ message: "User deleted successfully" });
   } catch (error: any) {
-    if (error.code === 'P2003') {
-      return NextResponse.json({ error: "This user cannot be removed because they have created parts, orders, or stock movements. Please use 'Deny Access' to disable their account instead." }, { status: 400 });
-    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
