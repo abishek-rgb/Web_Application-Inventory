@@ -16,6 +16,8 @@ export default function EnrollOrderPage() {
   const [totalPrice, setTotalPrice] = useState("");
   const [orderUrl, setOrderUrl] = useState("");
 
+  const [siteSuggestions, setSiteSuggestions] = useState<string[]>([]);
+
   const formatDateTimeMask = (value: string) => {
     const digits = value.replace(/\D/g, '');
     let formatted = '';
@@ -33,6 +35,11 @@ export default function EnrollOrderPage() {
     const now = new Date();
     const pad = (n: number) => n.toString().padStart(2, '0');
     setOrderDate(`${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} (${pad(now.getHours())}:${pad(now.getMinutes())})`);
+
+    fetch("/api/suggestions?field=purchase_site")
+      .then(res => res.json())
+      .then(data => setSiteSuggestions(Array.isArray(data) ? data : []))
+      .catch(() => {});
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -162,8 +169,12 @@ export default function EnrollOrderPage() {
               onChange={(e) => setPurchaseSite(e.target.value)}
               placeholder="e.g. Amazon, Mouser, DigiKey"
               className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary"
+              list="site_suggestions"
               required
             />
+            <datalist id="site_suggestions">
+              {siteSuggestions.map((s, i) => <option key={i} value={s} />)}
+            </datalist>
           </div>
 
           <div>

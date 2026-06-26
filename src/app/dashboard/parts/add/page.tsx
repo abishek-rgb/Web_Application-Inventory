@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -80,6 +80,12 @@ export default function AddPartWizard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Suggestions state
+  const [nameSuggestions, setNameSuggestions] = useState<string[]>([]);
+  const [numberSuggestions, setNumberSuggestions] = useState<string[]>([]);
+  const [packageSuggestions, setPackageSuggestions] = useState<string[]>([]);
+  const [zoneSuggestions, setZoneSuggestions] = useState<string[]>([]);
+
   // Wizard state
   const [step, setStep] = useState(1);
 
@@ -156,6 +162,14 @@ export default function AddPartWizard() {
           { id: "2-1", name: "module", label: "Module" },
           { id: "2-2", name: "component", label: "Component" },
           { id: "2-3", name: "device", label: "Device" }
+        ]);
+
+        // Fetch Suggestions
+        Promise.all([
+          fetch("/api/suggestions?field=part_name").then(res => res.json()).then(data => setNameSuggestions(Array.isArray(data) ? data : [])).catch(() => {}),
+          fetch("/api/suggestions?field=part_number").then(res => res.json()).then(data => setNumberSuggestions(Array.isArray(data) ? data : [])).catch(() => {}),
+          fetch("/api/suggestions?field=package").then(res => res.json()).then(data => setPackageSuggestions(Array.isArray(data) ? data : [])).catch(() => {}),
+          fetch("/api/suggestions?field=zone").then(res => res.json()).then(data => setZoneSuggestions(Array.isArray(data) ? data : [])).catch(() => {})
         ]);
 
       } catch (err) {
@@ -512,8 +526,12 @@ export default function AddPartWizard() {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Resistor 10k 1/4W"
                   className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary"
+                  list="name_suggestions"
                   required
                 />
+                <datalist id="name_suggestions">
+                  {nameSuggestions.map((s, i) => <option key={i} value={s} />)}
+                </datalist>
               </div>
 
               <div>
@@ -524,7 +542,11 @@ export default function AddPartWizard() {
                   onChange={(e) => setPartNumber(e.target.value)}
                   placeholder="Manufacturer Part Number"
                   className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary"
+                  list="number_suggestions"
                 />
+                <datalist id="number_suggestions">
+                  {numberSuggestions.map((s, i) => <option key={i} value={s} />)}
+                </datalist>
               </div>
             </div>
 
@@ -554,7 +576,11 @@ export default function AddPartWizard() {
                   onChange={(e) => setPkg(e.target.value)}
                   placeholder="e.g. 0603, SOT-23, DIP-8"
                   className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary"
+                  list="package_suggestions"
                 />
+                <datalist id="package_suggestions">
+                  {packageSuggestions.map((s, i) => <option key={i} value={s} />)}
+                </datalist>
               </div>
             </div>
 
@@ -669,8 +695,12 @@ export default function AddPartWizard() {
                       onChange={(e) => setNewZone(e.target.value)}
                       placeholder="e.g. Store, Component Lab"
                       className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary"
+                      list="zone_suggestions"
                       required
                     />
+                    <datalist id="zone_suggestions">
+                      {zoneSuggestions.map((s, i) => <option key={i} value={s} />)}
+                    </datalist>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Rack</label>
