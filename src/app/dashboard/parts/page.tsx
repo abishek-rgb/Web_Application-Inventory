@@ -845,48 +845,50 @@ export default function PartsPage() {
                     <tr key={part.id} className={`${rowBg} hover:bg-bg/40 transition-colors`}>
                       <td className="py-4 px-6 space-y-1">
                         <div className="font-bold text-text-primary">{part.name}</div>
-                        <div className="flex items-center flex-wrap gap-3 text-xs text-text-secondary">
-                          {part.comment && (
-                            <span className="text-info max-w-[200px] truncate" title={part.comment}>
-                              {part.comment}
-                            </span>
-                          )}
-                          {part.part_number && (
-                            <span>
-                              PN: <span className="font-mono text-primary">{part.part_number}</span>
-                            </span>
-                          )}
-                          {part.package && (
-                            <span>
-                              Pkg: <span className="font-mono">{part.package}</span>
-                            </span>
-                          )}
-                          {part.datasheet_url && (
-                            <a
-                              href={part.datasheet_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-info hover:underline flex items-center gap-0.5"
-                            >
-                              Datasheet <ExternalLink className="w-3 h-3" />
-                            </a>
-                          )}
-                          {part.purchase_url && (
-                            <a
-                              href={part.purchase_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-primary hover:underline flex items-center gap-0.5"
-                            >
-                              Buy <ExternalLink className="w-3 h-3" />
-                            </a>
-                          )}
-                          {part.price_per_unit !== null && (
-                            <span>
-                              Price: <span className="font-bold text-success">&#x20B9;{part.price_per_unit.toFixed(2)}</span>
-                            </span>
-                          )}
-                        </div>
+                        {(part.comment || part.part_number || part.package || part.datasheet_url || part.purchase_url || part.price_per_unit !== null) && (
+                          <div className="flex items-center flex-wrap gap-3 text-xs text-text-secondary">
+                            {part.comment && (
+                              <span className="text-info max-w-[200px] truncate" title={part.comment}>
+                                {part.comment}
+                              </span>
+                            )}
+                            {part.part_number && (
+                              <span>
+                                PN: <span className="font-mono text-primary">{part.part_number}</span>
+                              </span>
+                            )}
+                            {part.package && (
+                              <span>
+                                Pkg: <span className="font-mono">{part.package}</span>
+                              </span>
+                            )}
+                            {part.datasheet_url && (
+                              <a
+                                href={part.datasheet_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-info hover:underline flex items-center gap-0.5"
+                              >
+                                Datasheet <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                            {part.purchase_url && (
+                              <a
+                                href={part.purchase_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-primary hover:underline flex items-center gap-0.5"
+                              >
+                                Buy <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                            {part.price_per_unit !== null && (
+                              <span>
+                                Price: <span className="font-bold text-success">&#x20B9;{part.price_per_unit.toFixed(2)}</span>
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="py-4 px-6">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getCategoryColor(part.category.name)}`}>
