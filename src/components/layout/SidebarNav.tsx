@@ -14,7 +14,8 @@ import {
   MapPin, 
   Tag, 
   Users,
-  Truck
+  Truck,
+  Database
 } from "lucide-react";
 
 export default function SidebarNav({ isSuperAdmin }: { isSuperAdmin: boolean }) {
@@ -47,6 +48,7 @@ export default function SidebarNav({ isSuperAdmin }: { isSuperAdmin: boolean }) 
 
   if (isSuperAdmin) {
     navItems.push({ label: "Users", href: "/dashboard/users", icon: Users });
+    navItems.push({ label: "Database Health", href: "/dashboard/db-status", icon: Database });
   }
 
   return (
