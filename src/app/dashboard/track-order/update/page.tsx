@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Edit, X, Truck, Check, Package, MapPin, Loader2 } from "lucide-react";
+import { Search, Edit, X, Truck, Check, Package, MapPin, Loader2, ExternalLink } from "lucide-react";
 
 type OrderStatus = "ENROLLED" | "SHIPPED" | "IN_TRANSIT" | "IN_SECURITY" | "RECEIVED";
 
@@ -200,7 +200,16 @@ export default function UpdateStatusPage() {
                     <tr key={order.id} className="hover:bg-bg/40 transition-colors">
                       <td className="px-6 py-4 font-medium text-text-primary">{order.order_id}</td>
                       <td className="px-6 py-4 text-text-secondary">{formatCustomDate(order.order_date)}</td>
-                      <td className="px-6 py-4 text-text-secondary">{order.purchase_site}</td>
+                      <td className="px-6 py-4 text-text-secondary">
+                        <div className="flex items-center gap-2">
+                          {order.purchase_site}
+                          {(order as any).order_url && (
+                            <a href={(order as any).order_url} target="_blank" rel="noopener noreferrer" className="text-text-secondary hover:text-primary transition-colors" title="View Order Link">
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${conf.color}`}>
                           <Icon className="w-3 h-3 mr-1" />

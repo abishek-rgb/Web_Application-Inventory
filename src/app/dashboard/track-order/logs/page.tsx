@@ -14,6 +14,7 @@ interface Order {
   received_date: string | null;
   received_with_invoice: boolean | null;
   total_price: number | null;
+  order_url: string | null;
   creator: {
     name: string;
     email: string;
@@ -131,7 +132,14 @@ export default function OrderLogsPage() {
                         </div>
                       </td>
                       <td className="py-4 px-6 font-semibold">
-                        {order.purchase_site}
+                        <div className="flex items-center gap-2">
+                          {order.purchase_site}
+                          {order.order_url && (
+                            <a href={order.order_url} target="_blank" rel="noopener noreferrer" className="text-text-secondary hover:text-primary transition-colors" title="View Order Link">
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+                        </div>
                       </td>
                       <td className="py-4 px-6 text-right font-mono font-bold">
                         {order.total_price !== null ? (

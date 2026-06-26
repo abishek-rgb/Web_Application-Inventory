@@ -178,6 +178,7 @@ model TrackedOrder {
   received_date         DateTime?   @db.Timestamptz
   received_with_invoice Boolean?
   total_price           Float?
+  order_url             String?
 
   created_by            String      @db.Uuid
   updated_at            DateTime    @updatedAt @db.Timestamptz
