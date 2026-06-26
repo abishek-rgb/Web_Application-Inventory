@@ -190,10 +190,16 @@ export default function UpdateStatusPage() {
                 filteredOrders.map((order) => {
                   const conf = statusConfig[order.status];
                   const Icon = conf.icon;
+                  const formatCustomDate = (dateStr: string) => {
+                    const d = new Date(dateStr);
+                    const pad = (n: number) => n.toString().padStart(2, '0');
+                    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                  };
+
                   return (
                     <tr key={order.id} className="hover:bg-bg/40 transition-colors">
                       <td className="px-6 py-4 font-medium text-text-primary">{order.order_id}</td>
-                      <td className="px-6 py-4 text-text-secondary">{new Date(order.order_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</td>
+                      <td className="px-6 py-4 text-text-secondary">{formatCustomDate(order.order_date)}</td>
                       <td className="px-6 py-4 text-text-secondary">{order.purchase_site}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${conf.color}`}>

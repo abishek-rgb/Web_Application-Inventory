@@ -110,19 +110,24 @@ export default function OrderLogsPage() {
                   <th className="py-4 px-6">Purchase Site</th>
                   <th className="py-4 px-6 text-right">Price (INR)</th>
                   <th className="py-4 px-6">Status</th>
-                  <th className="py-4 px-6">Invoice</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40 text-sm text-text-primary">
                 {filteredOrders.map((order, index) => {
                   const rowBg = index % 2 === 0 ? "bg-[#141414]" : "bg-[#1C1C1C]";
                   
+                  const formatCustomDate = (dateStr: string) => {
+                    const d = new Date(dateStr);
+                    const pad = (n: number) => n.toString().padStart(2, '0');
+                    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                  };
+
                   return (
                     <tr key={order.id} className={`${rowBg} hover:bg-bg/40 transition-colors`}>
                       <td className="py-4 px-6">
                         <div className="font-bold text-primary font-mono">{order.order_id}</div>
-                        <div className="text-xs text-text-secondary mt-1">
-                          {new Date(order.order_date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                        <div className="text-sm text-text-secondary mt-1">
+                          {formatCustomDate(order.order_date)}
                         </div>
                       </td>
                       <td className="py-4 px-6 font-semibold">
@@ -136,28 +141,18 @@ export default function OrderLogsPage() {
                         )}
                       </td>
                       <td className="py-4 px-6">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${getStatusColor(order.status)}`}>
-                          {order.status.replace("_", " ")}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${getStatusColor(order.status)}`}>
+                            {order.status.replace("_", " ")}
+                          </span>
+                          {order.status === "RECEIVED" && order.received_with_invoice && (
+                            <FileText className="w-4 h-4 text-info" title="Invoice Received" />
+                          )}
+                        </div>
                         {order.status === "RECEIVED" && order.received_date && (
-                          <div className="text-[10px] text-text-secondary mt-1">
-                            on {new Date(order.received_date).toLocaleDateString()}
+                          <div className="text-sm text-text-secondary mt-1">
+                            on {formatCustomDate(order.received_date)}
                           </div>
-                        )}
-                      </td>
-                      <td className="py-4 px-6">
-                        {order.status === "RECEIVED" ? (
-                          order.received_with_invoice === true ? (
-                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-success bg-success/10 px-2 py-1 rounded border border-success/20">
-                              <CheckCircle className="w-3 h-3" /> Received
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-danger bg-danger/10 px-2 py-1 rounded border border-danger/20">
-                              <XCircle className="w-3 h-3" /> Missing
-                            </span>
-                          )
-                        ) : (
-                          <span className="text-xs text-text-secondary italic">Pending Delivery</span>
                         )}
                       </td>
                     </tr>
