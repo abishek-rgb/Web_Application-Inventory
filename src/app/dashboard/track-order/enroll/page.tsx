@@ -167,7 +167,7 @@ export default function EnrollOrderPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Order Component Link / URL</label>
+            <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Order Link</label>
             <input
               type="url"
               value={orderUrl}
