@@ -66,6 +66,41 @@ export async function GET(req: Request) {
         suggestions = zones.map(n => n.zone).filter(Boolean);
         break;
 
+      // Extract specifications from comments
+      case "voltage":
+      case "current":
+      case "manufacturer":
+      case "valSpec":
+      case "tolerance":
+      case "commProtocol":
+      case "frequency":
+      case "supplier":
+        const allParts = await prisma.part.findMany({
+          select: { comment: true },
+          where: { comment: { not: null } }
+        });
+        
+        const specMap: Record<string, RegExp> = {
+          voltage: /Voltage:\s*([^,\|]+)/i,
+          current: /Current:\s*([^,\|]+)/i,
+          manufacturer: /Manufacturer:\s*([^,\|]+)/i,
+          valSpec: /Value:\s*([^,\|]+)/i,
+          tolerance: /Tolerance:\s*([^,\|]+)/i,
+          commProtocol: /Protocols:\s*([^,\|]+)/i,
+          frequency: /Freq:\s*([^,\|]+)/i,
+          supplier: /Supplier:\s*([^,\|]+)/i,
+        };
+        
+        const regex = specMap[field as string];
+        const extracted = allParts.map(p => {
+          if (!p.comment) return null;
+          const match = p.comment.match(regex);
+          return match ? match[1].trim() : null;
+        }).filter(Boolean) as string[];
+        
+        suggestions = [...new Set(extracted)].sort();
+        break;
+
       default:
         return NextResponse.json({ error: "Invalid field parameter" }, { status: 400 });
     }

@@ -71,12 +71,12 @@ export function AutocompleteInput({
         {...props}
       />
       {isOpen && filtered.length > 0 && (
-        <ul className="absolute z-50 w-full mt-1 bg-surface border border-border rounded-lg shadow-lg max-h-60 overflow-auto">
+        <ul className="absolute z-50 w-full mt-2 bg-[#0A0A0A]/95 backdrop-blur-md border border-[#333] rounded-lg shadow-2xl max-h-64 overflow-y-auto overflow-x-hidden custom-scrollbar divide-y divide-[#222]">
           {filtered.map((suggestion, index) => (
             <li
               key={index}
               onClick={() => handleSelect(suggestion)}
-              className="px-4 py-2 text-sm text-text-primary hover:bg-bg/60 cursor-pointer transition-colors"
+              className="px-4 py-3 text-sm text-text-primary hover:bg-primary/20 hover:text-primary cursor-pointer transition-all duration-200 ease-in-out font-medium"
             >
               {/* Highlight the matching part */}
               {suggestion}

@@ -86,6 +86,15 @@ export default function AddPartWizard() {
   const [numberSuggestions, setNumberSuggestions] = useState<string[]>([]);
   const [packageSuggestions, setPackageSuggestions] = useState<string[]>([]);
   const [zoneSuggestions, setZoneSuggestions] = useState<string[]>([]);
+  
+  const [voltageSuggestions, setVoltageSuggestions] = useState<string[]>([]);
+  const [currentSuggestions, setCurrentSuggestions] = useState<string[]>([]);
+  const [manufacturerSuggestions, setManufacturerSuggestions] = useState<string[]>([]);
+  const [valSpecSuggestions, setValSpecSuggestions] = useState<string[]>([]);
+  const [toleranceSuggestions, setToleranceSuggestions] = useState<string[]>([]);
+  const [commProtocolSuggestions, setCommProtocolSuggestions] = useState<string[]>([]);
+  const [frequencySuggestions, setFrequencySuggestions] = useState<string[]>([]);
+  const [supplierSuggestions, setSupplierSuggestions] = useState<string[]>([]);
 
   // Wizard state
   const [step, setStep] = useState(1);
@@ -170,7 +179,15 @@ export default function AddPartWizard() {
           fetch("/api/suggestions?field=part_name").then(res => res.json()).then(data => setNameSuggestions(Array.isArray(data) ? data : [])).catch(() => {}),
           fetch("/api/suggestions?field=part_number").then(res => res.json()).then(data => setNumberSuggestions(Array.isArray(data) ? data : [])).catch(() => {}),
           fetch("/api/suggestions?field=package").then(res => res.json()).then(data => setPackageSuggestions(Array.isArray(data) ? data : [])).catch(() => {}),
-          fetch("/api/suggestions?field=zone").then(res => res.json()).then(data => setZoneSuggestions(Array.isArray(data) ? data : [])).catch(() => {})
+          fetch("/api/suggestions?field=zone").then(res => res.json()).then(data => setZoneSuggestions(Array.isArray(data) ? data : [])).catch(() => {}),
+          fetch("/api/suggestions?field=voltage").then(res => res.json()).then(data => setVoltageSuggestions(Array.isArray(data) ? data : [])).catch(() => {}),
+          fetch("/api/suggestions?field=current").then(res => res.json()).then(data => setCurrentSuggestions(Array.isArray(data) ? data : [])).catch(() => {}),
+          fetch("/api/suggestions?field=manufacturer").then(res => res.json()).then(data => setManufacturerSuggestions(Array.isArray(data) ? data : [])).catch(() => {}),
+          fetch("/api/suggestions?field=valSpec").then(res => res.json()).then(data => setValSpecSuggestions(Array.isArray(data) ? data : [])).catch(() => {}),
+          fetch("/api/suggestions?field=tolerance").then(res => res.json()).then(data => setToleranceSuggestions(Array.isArray(data) ? data : [])).catch(() => {}),
+          fetch("/api/suggestions?field=commProtocol").then(res => res.json()).then(data => setCommProtocolSuggestions(Array.isArray(data) ? data : [])).catch(() => {}),
+          fetch("/api/suggestions?field=frequency").then(res => res.json()).then(data => setFrequencySuggestions(Array.isArray(data) ? data : [])).catch(() => {}),
+          fetch("/api/suggestions?field=supplier").then(res => res.json()).then(data => setSupplierSuggestions(Array.isArray(data) ? data : [])).catch(() => {})
         ]);
 
       } catch (err) {
@@ -314,11 +331,11 @@ export default function AddPartWizard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Voltage Rating</label>
-            <input type="text" value={voltage} onChange={(e) => setVoltage(e.target.value)} placeholder="e.g. 230V AC" className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary" />
+            <AutocompleteInput value={voltage} onChangeText={setVoltage} suggestions={voltageSuggestions} placeholder="e.g. 230V AC" className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary" />
           </div>
           <div>
             <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Current Rating</label>
-            <input type="text" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="e.g. 10A" className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary" />
+            <AutocompleteInput value={current} onChangeText={setCurrent} suggestions={currentSuggestions} placeholder="e.g. 10A" className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary" />
           </div>
         </div>
       );
@@ -328,15 +345,15 @@ export default function AddPartWizard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Manufacturer</label>
-            <input type="text" value={manufacturer} onChange={(e) => setManufacturer(e.target.value)} placeholder="e.g. Espressif" className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary" />
+            <AutocompleteInput value={manufacturer} onChangeText={setManufacturer} suggestions={manufacturerSuggestions} placeholder="e.g. Espressif" className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary" />
           </div>
           <div>
             <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Value / Specification</label>
-            <input type="text" value={valSpec} onChange={(e) => setValSpec(e.target.value)} placeholder="e.g. 10k Ohm" className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary" />
+            <AutocompleteInput value={valSpec} onChangeText={setValSpec} suggestions={valSpecSuggestions} placeholder="e.g. 10k Ohm" className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary" />
           </div>
           <div>
             <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Tolerance</label>
-            <input type="text" value={tolerance} onChange={(e) => setTolerance(e.target.value)} placeholder="e.g. 1%" className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary" />
+            <AutocompleteInput value={tolerance} onChangeText={setTolerance} suggestions={toleranceSuggestions} placeholder="e.g. 1%" className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary" />
           </div>
         </div>
       );
@@ -346,15 +363,15 @@ export default function AddPartWizard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Manufacturer</label>
-            <input type="text" value={manufacturer} onChange={(e) => setManufacturer(e.target.value)} placeholder="e.g. Quectel" className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary" />
+            <AutocompleteInput value={manufacturer} onChangeText={setManufacturer} suggestions={manufacturerSuggestions} placeholder="e.g. Quectel" className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary" />
           </div>
           <div>
             <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Comm Protocol</label>
-            <input type="text" value={commProtocol} onChange={(e) => setCommProtocol(e.target.value)} placeholder="e.g. WiFi, BLE, LoRa" className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary" />
+            <AutocompleteInput value={commProtocol} onChangeText={setCommProtocol} suggestions={commProtocolSuggestions} placeholder="e.g. WiFi, BLE, LoRa" className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary" />
           </div>
           <div>
             <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Operating Frequency</label>
-            <input type="text" value={frequency} onChange={(e) => setFrequency(e.target.value)} placeholder="e.g. 2.4 GHz" className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary" />
+            <AutocompleteInput value={frequency} onChangeText={setFrequency} suggestions={frequencySuggestions} placeholder="e.g. 2.4 GHz" className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary" />
           </div>
         </div>
       );
@@ -363,7 +380,7 @@ export default function AddPartWizard() {
       return (
         <div>
           <label className="block text-xs font-semibold text-text-secondary uppercase mb-1">Supplier</label>
-          <input type="text" value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder="Vendor name" className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary" />
+          <AutocompleteInput value={supplier} onChangeText={setSupplier} suggestions={supplierSuggestions} placeholder="Vendor name" className="w-full px-3 py-2 bg-bg border border-border rounded text-text-primary text-sm focus:outline-none focus:border-primary" />
         </div>
       );
     }
