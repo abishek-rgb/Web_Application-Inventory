@@ -381,19 +381,6 @@ export default function PartsPage() {
   const isAdmin = session?.user?.role === "ADMIN";
   const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
 
-  const fetchParts = async () => {
-    try {
-      const res = await fetch("/api/parts");
-      if (!res.ok) throw new Error("Failed to fetch parts");
-      const data = await res.json();
-      setParts(data);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDeletePart = async (partId: string) => {
     if (!confirm("Are you sure you want to permanently delete this part and all its stock history?")) return;
     

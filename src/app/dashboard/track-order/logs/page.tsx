@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Package, Search, ExternalLink, Loader2, FileText, CheckCircle, XCircle, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -60,7 +61,7 @@ export default function OrderLogsPage() {
     }
   };
 
-  const filteredOrders = orders.filter((o) =>
+  const filteredOrders = orders.filter((o: Order) =>
     o.order_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
     o.purchase_site.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -131,7 +132,7 @@ export default function OrderLogsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40 text-sm text-text-primary">
-                {filteredOrders.map((order, index) => {
+                {filteredOrders.map((order: Order, index: number) => {
                   const rowBg = index % 2 === 0 ? "bg-[#141414]" : "bg-[#1C1C1C]";
                   
                   const formatCustomDate = (dateStr: string) => {
