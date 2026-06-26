@@ -687,7 +687,7 @@ export default function PartsPage() {
     setEditPartNumber(part.part_number || "");
     setEditPackage(part.package || "");
     setEditDatasheetUrl(part.datasheet_url || "");
-    setEditComment(part.comment || "");
+    setEditComment(part.comment === "Imported from spreadsheet" ? "" : (part.comment || ""));
     setEditHsnCodeId(part.hsn_code.id || "");
     setEditPurchaseUrl(part.purchase_url || "");
     setEditPricePerUnit(part.price_per_unit !== null ? part.price_per_unit.toString() : "");
@@ -845,9 +845,9 @@ export default function PartsPage() {
                     <tr key={part.id} className={`${rowBg} hover:bg-bg/40 transition-colors`}>
                       <td className="py-4 px-6 space-y-1">
                         <div className="font-bold text-text-primary">{part.name}</div>
-                        {(part.comment || part.part_number || part.package || part.datasheet_url || part.purchase_url || part.price_per_unit !== null) && (
+                        {(part.comment && part.comment !== 'Imported from spreadsheet' || part.part_number || part.package || part.datasheet_url || part.purchase_url || part.price_per_unit !== null) && (
                           <div className="flex items-center flex-wrap gap-3 text-xs text-text-secondary">
-                            {part.comment && (
+                            {part.comment && part.comment !== 'Imported from spreadsheet' && (
                               <span className="text-info max-w-[200px] truncate" title={part.comment}>
                                 {part.comment}
                               </span>
