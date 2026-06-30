@@ -184,8 +184,25 @@ model TrackedOrder {
   updated_at            DateTime    @updatedAt @db.Timestamptz
   created_at            DateTime    @default(now()) @db.Timestamptz
 
-  creator               User        @relation("UserCreatedOrders", fields: [created_by], references: [id])
+  creator               User               @relation("UserCreatedOrders", fields: [created_by], references: [id])
+  items                 TrackedOrderItem[]
 
   @@index([order_id], name: "idx_tracked_order_id")
   @@map("tracked_orders")
+}
+
+model TrackedOrderItem {
+  id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tracked_order_id String       @db.Uuid
+  component_name   String       @db.VarChar(255)
+  quantity         Int
+  price            Float?
+  is_received      Boolean      @default(false)
+  created_at       DateTime     @default(now()) @db.Timestamptz
+  updated_at       DateTime     @updatedAt @db.Timestamptz
+
+  tracked_order    TrackedOrder @relation(fields: [tracked_order_id], references: [id], onDelete: Cascade)
+
+  @@index([tracked_order_id], name: "idx_tracked_order_item_order_id")
+  @@map("tracked_order_items")
 }

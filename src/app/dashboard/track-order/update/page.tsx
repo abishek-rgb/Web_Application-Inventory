@@ -1,9 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Edit, X, Truck, Check, Package, MapPin, Loader2, ExternalLink } from "lucide-react";
+import { Search, Edit, X, Truck, Check, Package, MapPin, Loader2, ExternalLink, CheckCircle } from "lucide-react";
 
 type OrderStatus = "ENROLLED" | "SHIPPED" | "IN_TRANSIT" | "IN_SECURITY" | "RECEIVED";
+
+interface OrderItem {
+  id: string;
+  component_name: string;
+  quantity: number;
+  price: number | null;
+  is_received: boolean;
+}
 
 interface TrackedOrder {
   id: string;
@@ -19,6 +27,7 @@ interface TrackedOrder {
     name: string;
     email: string;
   };
+  items?: OrderItem[];
 }
 
 const statusConfig = {
@@ -36,12 +45,15 @@ export default function UpdateStatusPage() {
   const [search, setSearch] = useState("");
 
   const [selectedOrder, setSelectedOrder] = useState<TrackedOrder | null>(null);
+  const [selectedOrderForItems, setSelectedOrderForItems] = useState<TrackedOrder | null>(null);
+  
   const [newStatus, setNewStatus] = useState<OrderStatus>("ENROLLED");
   const [securityFloor, setSecurityFloor] = useState("");
   const [receivedDate, setReceivedDate] = useState("");
   const [receivedWithInvoice, setReceivedWithInvoice] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [updateError, setUpdateError] = useState("");
+  const [updatingItems, setUpdatingItems] = useState(false);
 
   const formatDateTimeMask = (value: string) => {
     const digits = value.replace(/\D/g, '');
@@ -106,11 +118,17 @@ export default function UpdateStatusPage() {
         const [datePart, timePartWithParens] = receivedDate.split(' (');
         const timePart = timePartWithParens.replace(')', '');
         const [day, month, year] = datePart.split('/');
-        payload.received_date = `${year}-${month}-${day}T${timePart}:00`;
+        const [hour, minute] = timePart.split(':');
         
-        if (isNaN(new Date(payload.received_date).getTime())) {
+        // Create date in local timezone
+        const d = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
+        
+        if (isNaN(d.getTime())) {
           throw new Error("Please enter a valid date and time.");
         }
+        
+        // Send as full ISO string so the server parses it exactly without guessing timezone
+        payload.received_date = d.toISOString();
 
         payload.received_with_invoice = receivedWithInvoice;
       }
@@ -135,6 +153,31 @@ export default function UpdateStatusPage() {
     }
   };
 
+  const handleToggleItemReceived = async (itemId: string, currentStatus: boolean) => {
+    if (!selectedOrderForItems) return;
+    setUpdatingItems(true);
+    try {
+      const res = await fetch(`/api/orders/${selectedOrderForItems.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: [{ id: itemId, is_received: !currentStatus }]
+        })
+      });
+      if (!res.ok) throw new Error("Failed to update item status");
+      
+      const updatedOrder = await res.json();
+      setSelectedOrderForItems(updatedOrder);
+      
+      // Update the main list too
+      setOrders(orders.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setUpdatingItems(false);
+    }
+  };
+
   const filteredOrders = orders.filter(
     (o) =>
       o.order_id.toLowerCase().includes(search.toLowerCase()) ||
@@ -146,7 +189,7 @@ export default function UpdateStatusPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-text-primary tracking-wide">Update Order Status</h2>
-          <p className="text-sm text-text-secondary">Track and transition orders through delivery stages.</p>
+          <p className="text-sm text-text-secondary">Track orders and double-click to view components.</p>
         </div>
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
@@ -191,20 +234,29 @@ export default function UpdateStatusPage() {
                   const conf = statusConfig[order.status];
                   const Icon = conf.icon;
                   const formatCustomDate = (dateStr: string) => {
+                    if (!dateStr) return "—";
                     const d = new Date(dateStr);
                     const pad = (n: number) => n.toString().padStart(2, '0');
-                    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                    let hours = d.getHours();
+                    const ampm = hours >= 12 ? 'PM' : 'AM';
+                    hours = hours % 12;
+                    hours = hours ? hours : 12;
+                    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(hours)}:${pad(d.getMinutes())} ${ampm}`;
                   };
 
                   return (
-                    <tr key={order.id} className="hover:bg-bg/40 transition-colors">
+                    <tr 
+                      key={order.id} 
+                      className="hover:bg-bg/40 transition-colors cursor-pointer"
+                      onDoubleClick={() => setSelectedOrderForItems(order)}
+                    >
                       <td className="px-6 py-4 font-medium text-text-primary">{order.order_id}</td>
                       <td className="px-6 py-4 text-text-secondary">{formatCustomDate(order.order_date)}</td>
                       <td className="px-6 py-4 text-text-secondary">
                         <div className="flex items-center gap-2">
                           {order.purchase_site}
                           {(order as any).order_url && (
-                            <a href={(order as any).order_url} target="_blank" rel="noopener noreferrer" className="text-text-secondary hover:text-primary transition-colors" title="View Order Link">
+                            <a href={(order as any).order_url} target="_blank" rel="noopener noreferrer" className="text-text-secondary hover:text-primary transition-colors" title="View Order Link" onClick={(e) => e.stopPropagation()}>
                               <ExternalLink className="w-3.5 h-3.5" />
                             </a>
                           )}
@@ -220,13 +272,22 @@ export default function UpdateStatusPage() {
                         )}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => handleOpenModal(order)}
-                          className="inline-flex items-center px-3 py-1.5 bg-bg border border-border hover:border-primary hover:text-primary text-text-secondary rounded text-xs font-semibold transition-colors"
-                        >
-                          <Edit className="w-3.5 h-3.5 mr-1.5" />
-                          Update
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setSelectedOrderForItems(order); }}
+                            className="inline-flex items-center px-3 py-1.5 bg-bg/50 border border-border hover:border-info hover:text-info text-text-secondary rounded text-xs font-semibold transition-colors"
+                          >
+                            <Package className="w-3.5 h-3.5 mr-1.5" />
+                            Items
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleOpenModal(order); }}
+                            className="inline-flex items-center px-3 py-1.5 bg-bg border border-border hover:border-primary hover:text-primary text-text-secondary rounded text-xs font-semibold transition-colors"
+                          >
+                            <Edit className="w-3.5 h-3.5 mr-1.5" />
+                            Update
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -237,7 +298,7 @@ export default function UpdateStatusPage() {
         </div>
       </div>
 
-      {/* Update Modal */}
+      {/* Update Order Status Modal */}
       {selectedOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-surface border border-border rounded-lg shadow-xl w-full max-w-md overflow-hidden flex flex-col">
@@ -341,6 +402,98 @@ export default function UpdateStatusPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Order Details Items Modal */}
+      {selectedOrderForItems && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedOrderForItems(null)} />
+          <div className="relative bg-surface border border-border w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-slide-up">
+            <div className="p-6 border-b border-border/50 flex justify-between items-center bg-bg/50">
+              <div>
+                <h3 className="text-xl font-bold text-text-primary font-mono">{selectedOrderForItems.order_id}</h3>
+                <p className="text-sm text-text-secondary mt-1">Partial Delivery Tracking</p>
+              </div>
+              <button 
+                onClick={() => setSelectedOrderForItems(null)}
+                className="p-2 text-text-secondary hover:text-text-primary hover:bg-bg rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 max-h-[60vh] overflow-y-auto">
+              {!selectedOrderForItems.items || selectedOrderForItems.items.length === 0 ? (
+                <div className="text-center py-12">
+                  <Package className="w-12 h-12 text-text-secondary/50 mx-auto mb-3" />
+                  <p className="text-text-secondary">No items recorded for this order.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {selectedOrderForItems.items.map((item) => (
+                    <div 
+                      key={item.id} 
+                      className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+                        item.is_received ? 'bg-success/5 border-success/30' : 'bg-bg/50 border-border'
+                      }`}
+                    >
+                      <div className="flex-1 pr-4">
+                        <h4 className={`font-semibold ${item.is_received ? 'text-success/90' : 'text-text-primary'}`}>
+                          {item.component_name}
+                        </h4>
+                        <div className="flex items-center gap-4 mt-2 text-sm">
+                          <span className="text-text-secondary">Qty: <strong className="text-text-primary">{item.quantity}</strong></span>
+                          {item.price !== null && (
+                            <span className="text-text-secondary">Price: <strong className="text-text-primary">&#x20B9;{item.price}</strong></span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="pl-4 border-l border-border/50">
+                        <label className="flex flex-col items-center cursor-pointer group">
+                          <div className="relative flex items-center justify-center">
+                            <input
+                              type="checkbox"
+                              className="sr-only"
+                              checked={item.is_received}
+                              onChange={() => handleToggleItemReceived(item.id, item.is_received)}
+                              disabled={updatingItems}
+                            />
+                            <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${
+                              item.is_received 
+                                ? 'bg-success border-success text-bg' 
+                                : 'bg-transparent border-border group-hover:border-primary text-transparent'
+                            }`}>
+                              {updatingItems ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-text-secondary" />
+                              ) : (
+                                <CheckCircle className={`w-5 h-5 ${item.is_received ? 'text-bg' : 'text-transparent'}`} />
+                              )}
+                            </div>
+                          </div>
+                          <span className={`text-[10px] uppercase font-bold mt-2 tracking-wider ${
+                            item.is_received ? 'text-success' : 'text-text-secondary group-hover:text-primary'
+                          }`}>
+                            {item.is_received ? 'Received' : 'Mark Recv'}
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <div className="p-4 bg-bg/80 border-t border-border/50 text-right">
+              <button 
+                onClick={() => setSelectedOrderForItems(null)}
+                className="px-6 py-2 bg-primary/20 hover:bg-primary/30 text-primary font-bold rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

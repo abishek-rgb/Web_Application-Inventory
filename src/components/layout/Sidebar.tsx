@@ -9,7 +9,7 @@ export default async function Sidebar() {
   const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
 
   return (
-    <aside className="w-64 glass border-r border-border h-full flex flex-col shadow-2xl relative z-20">
+    <aside className="hidden md:flex w-64 glass border-r border-border h-full flex-col shadow-2xl relative z-20">
       <div className="p-6">
         <Link href="/dashboard" className="block w-40 hover:scale-105 transition-transform duration-300">
           <Image src="/logo.png" alt="SecuLogix Logo" width={160} height={40} className="w-full h-auto object-contain drop-shadow-[0_0_8px_rgba(245,158,11,0.3)]" />

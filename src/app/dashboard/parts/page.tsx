@@ -758,11 +758,11 @@ export default function PartsPage() {
           <h2 className="text-2xl font-bold text-text-primary tracking-wide">Inventory Parts</h2>
           <p className="text-sm text-text-secondary">View and manage all registered hardware components</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           {!isViewer && (
             <Link
               href="/dashboard/parts/add"
-              className="bg-primary hover:bg-primary-dark text-bg font-bold py-2 px-4 rounded text-sm flex items-center gap-2 transition-colors"
+              className="bg-primary hover:bg-primary-dark text-bg font-bold py-2 px-4 rounded text-sm flex items-center justify-center gap-2 transition-colors flex-1 md:flex-auto min-w-[140px]"
             >
               <Plus className="w-4 h-4" /> Add Stock Item
             </Link>
@@ -770,7 +770,7 @@ export default function PartsPage() {
           <button
             onClick={handleExportExcel}
             disabled={exporting}
-            className="border border-border hover:border-primary text-text-secondary hover:text-primary font-semibold py-2 px-4 rounded text-sm flex items-center gap-2 transition-colors disabled:opacity-50"
+            className="border border-border hover:border-primary text-text-secondary hover:text-primary font-semibold py-2 px-4 rounded text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50 flex-1 md:flex-auto min-w-[140px]"
             title="Download full inventory as Excel (3 sheets)"
           >
             {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
@@ -779,7 +779,7 @@ export default function PartsPage() {
           <button
             onClick={handleExportPdf}
             disabled={exportingPdf}
-            className="border border-border hover:border-danger text-text-secondary hover:text-danger font-semibold py-2 px-4 rounded text-sm flex items-center gap-2 transition-colors disabled:opacity-50"
+            className="border border-border hover:border-danger text-text-secondary hover:text-danger font-semibold py-2 px-4 rounded text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50 flex-1 md:flex-auto min-w-[140px]"
             title="Download PDF summary report"
           >
             {exportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}

@@ -1,20 +1,20 @@
 "use client";
 
-import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { PackageOpen, ArrowRight, ArrowLeft, ShieldCheck, Activity, Cpu } from "lucide-react";
+import { loginAction } from "./action";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -23,20 +23,28 @@ export default function LoginPage() {
       return;
     }
 
-    setLoading(true);
-    const result = await signIn("credentials", {
-      email: email.trim(),
-      password,
-      redirect: false,
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.append("email", email.trim());
+      formData.append("password", password);
+      
+      try {
+        const result = await loginAction(formData);
+        if (result?.error) {
+          setError(result.error);
+        } else if (result?.success) {
+          router.push("/dashboard");
+          router.refresh();
+        }
+      } catch (err: any) {
+        // Fallback for NEXT_REDIRECT error if it still gets thrown
+        if (err.message && err.message.includes('NEXT_REDIRECT')) {
+          router.push("/dashboard");
+        } else {
+          setError("An unexpected error occurred.");
+        }
+      }
     });
-    setLoading(false);
-
-    if (result?.error) {
-      setError("Invalid email or password. Please try again.");
-    } else {
-      router.push("/dashboard");
-      router.refresh();
-    }
   };
 
   return (
@@ -198,10 +206,10 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={isPending}
               className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-primary to-primary-dark text-white font-bold text-lg flex items-center justify-center group hover:shadow-[0_0_30px_rgba(245,158,11,0.4)] hover:-translate-y-1 transition-all duration-300 disabled:opacity-70 disabled:hover:translate-y-0"
             >
-              {loading ? (
+              {isPending ? (
                 <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>

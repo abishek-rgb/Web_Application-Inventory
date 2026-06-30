@@ -14,7 +14,8 @@ export async function GET(req: NextRequest) {
       include: {
         creator: {
           select: { name: true, email: true }
-        }
+        },
+        items: true
       }
     });
 
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { order_id, order_date, purchase_site, total_price, order_url } = body;
+    const { order_id, order_date, purchase_site, total_price, order_url, items } = body;
 
     if (!order_id || !order_date || !purchase_site) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -50,7 +51,17 @@ export async function POST(req: NextRequest) {
         total_price: total_price ? parseFloat(total_price) : null,
         order_url: order_url || null,
         status: "ENROLLED",
-        created_by: session.user.id
+        created_by: session.user.id,
+        items: {
+          create: items && Array.isArray(items) ? items.map((item: any) => ({
+            component_name: item.component_name,
+            quantity: item.quantity,
+            price: item.price ? parseFloat(item.price) : null
+          })) : []
+        }
+      },
+      include: {
+        items: true
       }
     });
 
